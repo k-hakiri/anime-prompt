@@ -1,0 +1,17 @@
+# Local credentials; only the empty key template is public.
+.env
+.env.*
+!.env.example
+
+# Acquired data, generated features, and benchmark output.
+data/raw/
+data/features/
+data/results/
+results/
+
+# Local analysis and workspace metadata.
+data/private/
+.worktrees/
+.DS_Store
+
+# Add language-specific build/cache/coverage patterns in Issue #4.
