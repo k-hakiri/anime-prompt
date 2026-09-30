@@ -17,7 +17,9 @@ Issue → branch → 必要な仕様 → 実装 → local verify
 → fresh contextの独立review → PASS → PR → GitHub CI
 ```
 
-blocking があれば修正・verify・再 review を最大3回行い、解消しなければ PR を作らず停止します。CI 成功前に merge しません。
+blocking があれば修正・verify・再 review を最大3回行い、解消しなければ PR を作らず停止します。CI 成功前に merge しません。ただし、CI 未整備の bootstrap 期間にある Issue #2・#3 の初期整備 PR に限り、CI / status checks が存在しないことと例外の適用を PR 本文へ明記し、local verify と fresh context の独立 review が PASS して blocking と判断に必要な `cannot verify` がなければ merge 可能です。詳細は [dev Skill の bootstrap 条件](.codex/skills/anime-prompt-dev/SKILL.md#bootstrap-期間の-merge) を参照してください。
+
+Issue #4 自身は追加した CI が当該 PR の最新 head 上で成功してから merge します。#4 で CI を導入した後は AGENTS.md・dev Skill・README の例外記述を削除し、以後は CI 成功を必須にします。CI の未実行・pending・失敗は例外の対象になりません。merge の実行にはセッションの許可が必要です。
 
 verify 入口が整うまで、文書・設定のみの変更は `git diff --check`、リンクと全変更内容の確認、`git check-ignore` による ignore の確認を行い、コマンドと結果を独立 reviewer に渡します。アプリのテストや CI が成功したとは扱いません。整備後は README・dev Skill・CI で共通の verify 入口を使います。
 
