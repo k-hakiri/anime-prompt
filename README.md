@@ -31,7 +31,7 @@ npm run verify
 - unit test: 引数判定
 - CLI smoke test: 実プロセスの stdout・stderr・終了コード
 
-整形を修正する場合は `npm run format` を使います。テストは `tests/unit/` と `tests/smoke/` の `**/*.test.ts` を対象とし、追加テストも同じ入口で実行します。Secret・実取得データ・AniList/Jev/OpenAI への実リクエストは不要です。
+整形を修正する場合は `npm run format` を使います。テストは `tests/unit/` と `tests/smoke/` の `**/*.test.ts` を対象とし、追加テストも同じ入口で実行します。各テスト群で対象ファイルが0件なら失敗します。Secret・実取得データ・AniList/Jev/OpenAI への実リクエストは不要です。
 
 最小 CLI の起動確認は次のコマンドで行えます。
 

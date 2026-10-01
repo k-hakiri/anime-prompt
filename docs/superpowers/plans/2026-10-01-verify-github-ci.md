@@ -35,8 +35,8 @@
 **Files:**
 
 - Create: `package.json`, `package-lock.json`, `.node-version`, `tsconfig.json`, `eslint.config.js`, `.prettierignore`, `.prettierrc.json`
-- Create: `src/cli/args.ts`, `src/cli/main.ts`
-- Test: `tests/unit/args.test.ts`, `tests/smoke/cli.test.ts`
+- Create: `src/cli/args.ts`, `src/cli/main.ts`, `scripts/test.ts`
+- Test: `tests/unit/args.test.ts`, `tests/unit/test-runner.test.ts`, `tests/smoke/cli.test.ts`
 - Modify: `.gitignore`
 
 **Interfaces:**
@@ -79,3 +79,7 @@
 - [x] **Step 6: 検証済みの Task 2 と計画の完了状態を commit する。** 失敗注入の一時ファイルが残らないことを確認する。
 - [ ] **Step 7: 独立レビューを実施する。** Issue・正本の必要範囲・全差分・固定 revision・検証結果を repo 外の Review Package にまとめる。repo review Skill と Superpowers reviewer template を使い、fresh context の read-only reviewer を起動し、本体 header の model/effort/sandbox を照合する。blocking があれば repo dev Skill の最大3回の修正・verify・再レビューに従う。
 - [ ] **Step 8: レビュー済み差分を引き渡す。** PR 本文を repo 外に用意する。PR 作成の許可が未確定ならレビュー済み結果と本文を提示して確認する。許可済みなら push・PR 作成後に当該 head の CI を確認する。merge は自動実行しない。
+
+## Review correction
+
+初回独立レビューで、Node.js の quoted glob は対象0件でも成功することが判明した。`scripts/test.ts` で対象ファイルを列挙し、0件なら非0終了してから、Node.js test runner へ実在ファイルを渡す。ネストした test runner では親の `NODE_TEST_CONTEXT` を除き、独立した実行として失敗を伝播する。回帰テストは空の対象・ネストした成功・失敗の3ケース。unit と smoke の各群を空にした場合に `npm run verify` が失敗することも実行で確認する。
