@@ -50,6 +50,12 @@ npm link
 anime-fetch-anilist --season FALL --year 2026 > data/raw/2026-fall.jsonl
 ```
 
+手動で実 API の疎通を1回確認する場合は、次を実行します（Secret 不要）。全候補を取得し、先頭3行を表示します。CI は mock のままです。
+
+```sh
+anime-fetch-anilist --season FALL --year 2026 | sed -n '1,3p'
+```
+
 取得は [AniList GraphQL API](https://docs.anilist.co/guide/graphql/queries/media) のシーズン・年フィルタを使い、全ページ取得後に1作品1行の JSONL を出します。HTTP/GraphQL/データ不正は stderr と終了コード1で知らせます。自動 retry は行いません。AI API は呼びません。
 
 正規化契約は [Anime schema](src/anime/schema.ts) に定義します。`anime_id` は AniList の正整数 ID、`title` は native → romaji → english → `Anime ID` の順です。`description`、`episodes`、`duration`、`format`、原作種別 `source`、`studio`、`season`、`year` の欠損は null、`genres` / `tags` は空配列です。tags は name / rank (0–100 または null) を保持します。`data_source: anilist` と `source_url` で取得元を区別します。description は API の `asHtml: false` で取得します。
@@ -88,6 +94,8 @@ Jev で気分を同じ6軸へ1回で変換し、等重みのユークリッド�
 JSONL は1実行1行で、input_prompt / input_profile（元文・version・6軸）/ provider / resolved model / strategy / 順位・anime_id・title・score・reason を含む recommendations / usage / latency_ms / timestamp を記録します。metadata は candidate_ids、raw・features の hash、schema・prompt・requested model・生成条件・等重み・top_k を保持します。価格設定は後続 Issue のため runtime_cost_usd は null、人間向けには「未計算」と表示します。API 障害、不正入力、データ欠損は stderr と終了コード1で返し、結果を出しません。
 
 テストは API を呼ばず、unit と子プロセス smoke で確認します。実 stdin TTY を作る smoke test のため Python 3 も使用します（GitHub の Ubuntu runner に同梱）。
+
+途中で失敗した生成を再実行するときは、`>` で出力ファイルを作り直し、`>>` で追記しないでください。自動 retry / resume は行いません。
 
 ## 開発
 
