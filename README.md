@@ -6,7 +6,7 @@
 
 ## 現在の状態
 
-TypeScript の取得・Jev特徴量生成・推薦 CLI と、ローカル・GitHub CI 共通の品質ゲートを提供します。[Issue #7](https://github.com/k-hakiri/anime-prompt/issues/7)・[#8](https://github.com/k-hakiri/anime-prompt/issues/8)・[#9](https://github.com/k-hakiri/anime-prompt/issues/9)・[#14](https://github.com/k-hakiri/anime-prompt/issues/14) の範囲です。Luna / Sol 直接推薦・YAML batch・benchmark 集計は後続 Issue です。独立 review は [review Skill](.codex/skills/anime-prompt-review/SKILL.md) に従い、reviewer を `gpt-6.1-sol` / `medium` で起動します。
+TypeScript の取得・Jev特徴量生成・推薦 CLI と、ローカル・GitHub CI 共通の品質ゲートを提供します。[Issue #7](https://github.com/k-hakiri/anime-prompt/issues/7)・[#8](https://github.com/k-hakiri/anime-prompt/issues/8)・[#9](https://github.com/k-hakiri/anime-prompt/issues/9)・[#14](https://github.com/k-hakiri/anime-prompt/issues/14) の範囲です。Luna / Sol の basic one-shot 直接推薦（#25）と、4条件 × 3モデルの context 実験 runner（#27）にも対応しています。独立 review は [review Skill](.codex/skills/anime-prompt-review/SKILL.md) に従い、reviewer を `gpt-6.1-sol` / `medium` で起動します。
 
 ## セットアップと検証
 
@@ -117,6 +117,29 @@ Luna / Sol の JSONL は `result_schema_version: v3`、`provider: luna|sol`、`s
 Jev の v2 と異なり、probabilities / normalized_probabilities / confidence / recommendation probability はありません。human 表示は順位・タイトル・時間・usage です。runtime_cost_usd は未実装のため null（human は「未計算」）を維持します。比較できるのは順位・選択結果・usage・latency・cost であり、OpenAI の確率を捏造しません。実 API 結果は Git 管理外の `data/results/` へ保存してください。unit / smoke は合成 fixture と mock fetch を使い、OpenAI 実 API は呼びません。
 
 公式資料（確認日: 2026-10-01）: [Luna](https://developers.openai.com/api/docs/models/gpt-5.6-luna)、[Sol](https://developers.openai.com/api/docs/models/gpt-5.6-sol)、[Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs)。
+
+### コンテキスト注入の12-run実験 (#27)
+
+[実験定義](experiments/smoking-context-v1.yaml) は1つの固定 mood、Policy 文、嗜好 profile、SUMMER 2026、候補数106、context version を保持します。取得済みの同じ raw を使い、次の1コマンドで Jev → Luna → Sol、各 provider で baseline → policy → preference → combined の順に12回実行します。
+
+```sh
+# TYPESAFE_API_KEY / OPENAI_API_KEY を環境変数に設定
+mkdir -p data/results
+node src/cli/context_experiment.ts \
+  --experiment experiments/smoking-context-v1.yaml --format jsonl \
+  > data/results/smoking-context-v1.jsonl
+# npm link 後は anime-run-context-experiment でも同じオプションを使用できます
+```
+
+raw は定義の season / year から `data/raw/2026-summer.jsonl` を選びます。`--raw PATH` で同じキャッシュの場所を変更できます。候補数が定義と異なる場合は API 呼び出し前に失敗します。実験の途中で raw を再取得せず、比較時は保存した raw_sha256 / candidate_ids の一致を確認してください。
+
+全条件を basic / one-shot / Top 5、Luna / Sol を reasoning none に固定し、API call は並列化しません。baseline は従来の送信内容・prompt_version・出力契約を維持します。Policy は共通推薦判断指示へ追加し、Preference は Jev の state と OpenAI のユーザー入力 JSON の `preferences` へ渡します。mood は全条件で同一で、Preference を候補 criteria や role 指示に混ぜません。policy 条件では Preference を渡さず、preference 条件では Policy を追加しません。
+
+正式な保存形式は12行の JSONL だけです。進捗と完了通知は stderr に出します。**全12件が成功するまで結果をメモリに保持し、成功時だけ stdout にまとめて出力します。途中失敗は終了コード1・stdout 空で、不完全な結果は出力しません。** 既に成功した API call の課金は発生し得ます。retry / resume はなく、再実行時は新しい batch として12件を実行します。保存は `>` を使い、終了コード0・12行・同一 batch_id・run_index 1〜12 を確認してください。リダイレクト先は失敗時も空ファイルとして作成され得ます。
+
+各 record は既存の provider / model / input_prompt / input_profile / recommendations / usage / latency_ms / metadata の hash 類と candidate_ids を保持し、`experiment_id` / `experiment_sha256`（YAML ファイル内容の SHA256）/ `context_mode` / `context_version` / `context_sha256` / `batch_id` / `run_index`（1始まり）/ `run_count: 12` / `reasoning_effort` を追加します。Jev の provider は互換性のため `typesafe`、reasoning_effort は null のままです。context_sha256 は version と実際に適用した Policy / Preference の JSON の SHA256 で、baseline の context は空です。同じ mode の context hash は provider 間で一致します。provider 固有の prompt_version は従来の出力契約を示し、追加文脈は context version/hash で区別します。Jev の確率・confidence を保持し、OpenAI に擬似確率を追加しません。
+
+実結果は Git 管理外の `data/results/` に保存します。unit / smoke は合成データと mock API のみで、実推薦順位を正解として固定しません。この4条件 × 3モデルの観測までを今回の実験とし、Memory / RAG / 履歴連携は追加しません。
 
 ### Jev の診断 (#18)
 

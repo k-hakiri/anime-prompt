@@ -6,7 +6,8 @@
   "bin": {
     "anime-fetch-anilist": "src/cli/fetch_anilist.ts",
     "anime-build-features": "src/cli/build_features.ts",
-    "anime-recommend": "src/cli/recommend.ts"
+    "anime-recommend": "src/cli/recommend.ts",
+    "anime-run-context-experiment": "src/cli/context_experiment.ts"
   },
   "packageManager": "npm@11.19.0",
   "engines": {

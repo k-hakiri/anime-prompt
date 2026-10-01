@@ -6,7 +6,8 @@ import { resolveOpenAIModel } from '../providers/openai.ts';
 import type { OpenAIProvider, OpenAIRequester } from '../providers/openai.ts';
 import { selectCandidates } from './choice.ts';
 
-import { RECOMMENDATION_INSTRUCTIONS } from './instructions.ts';
+import { contextInstructions, userContext } from './context.ts';
+import type { RecommendationContext } from './context.ts';
 
 const OUTPUT_INSTRUCTIONS =
   '候補外の作品は出さず、IDを重複させないでください。候補が5件以上なら上位5件、5件未満なら全件を順位順に返してください。推薦理由や確率は生成しないでください。';
@@ -24,6 +25,7 @@ export async function recommendOpenAI(
     inputProfile: 'basic' | 'full';
     model?: string;
     rawSha256?: string;
+    context?: RecommendationContext;
   },
 ) {
   text(prompt);
@@ -38,9 +40,10 @@ export async function recommendOpenAI(
     model,
     reasoning: { effort: 'none' },
     store: false,
-    instructions: RECOMMENDATION_INSTRUCTIONS + OUTPUT_INSTRUCTIONS,
+    instructions: contextInstructions(options.context) + OUTPUT_INSTRUCTIONS,
     input: JSON.stringify({
       mood: prompt,
+      ...userContext(options.context),
       candidates: candidates.map((row) => ({
         anime_id: row.anime_id,
         ...projectAnime(row, 'basic'),
