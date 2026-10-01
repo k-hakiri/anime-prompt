@@ -31,8 +31,8 @@ Issue確認 → branch作成 → 必要な仕様を読む → 実装 → local v
 
 ## 3. Local verify
 
-1. Acceptance Criteria を一つずつ確認する。[README](../../../README.md) の verify 入口を実行し、コマンド・終了コード・結果・未実行項目を記録する。失敗は修正して再実行する。
-2. verify 入口・ツールチェーン・CI は [Issue #4](https://github.com/k-hakiri/anime-prompt/issues/4) で整備する。それまでは文書・設定だけの変更に限り、`git diff --check`、全変更ファイルとリンクの確認、`git check-ignore` による保護対象と公開ファイルの確認を local verify として記録する。アプリの品質ゲートを実行済みと扱わない。コード変更に必要な verify が未整備なら PR 前に停止する。
+1. Acceptance Criteria を一つずつ確認する。[README](../../../README.md#セットアップと検証) に従い、固定した Node.js と `npm ci` で環境を準備する。
+2. PR 作成前に、ローカル・CI 共通の `npm run verify` を実行する。format check / lint / typecheck / unit test / CLI smoke test のコマンド・終了コード・結果・未実行項目を記録する。文書・設定だけの変更でも省略しない。失敗は修正して再実行し、未実行・失敗を PASS と扱わない。`git diff --check`、文書リンク、`git check-ignore` による保護対象と公開ファイルの確認も行う。
 3. 公開 repo 向けに差分の全内容と追加ファイルを確認する。Secret、実取得 raw / feature data、benchmark results、個人メモがないことを確認する。ignore は既に追跡されたファイルには効かないため、`git ls-files` も確認する。Secret を含む出力は記録・共有せず、検出した場合は公開を止める。
 
 ## 4. Fresh context の独立 review
@@ -56,14 +56,4 @@ PR 本文には次を残す。
 - 独立 reviewer の判定、blocking 件数、再 review 回数。
 - 残る制約、軽微な指摘、`cannot verify / declined to judge` とその影響。
 
-PR 後は GitHub 上の当該 head の CI / status checks を確認する。CI 失敗で修正する場合も verify・独立 review をやり直し、PR の検証記録を更新する。CI が未整備・未実行・pending の状態を成功と扱わず、以下の bootstrap 例外を除き **CI 成功前に merge しない**。merge はセッションの許可範囲に従う。Branch Protection 等の人間設定はコード実装と分けて扱う。
-
-### Bootstrap 期間の merge
-
-親 Issue #1 の順序 `#2 → #3 → #4` を進めるため、次の条件をすべて満たす場合だけ CI 成功を merge 条件から除外する。
-
-- 対象が Issue #2 または #3 の初期整備 PR であり、repo に CI がまだ導入されていない。
-- GitHub 上の当該 head に CI / status checks が存在しないことを確認し、PR 本文に CI 未整備・未実行であることと、この例外を適用する旨を明記する。
-- 当該差分の local verify と fresh context の独立 review が PASS し、blocking finding と判断に必要な `cannot verify` が残っていない。
-
-CI が存在するのに未実行・pending・失敗している場合や、#2・#3 以外の PR には適用しない。Issue #4 自身は、追加した CI を当該 PR の最新 head 上で成功させてから merge する。#4 で CI を導入した後はこの例外を廃止し、AGENTS.md・この Skill・README の例外記述を削除する。以後はすべての PR で CI 成功を必須にする。この例外は merge の実行許可を与えない。
+PR 後は GitHub 上の当該 head の CI / status checks を確認する。CI 失敗で修正する場合も `npm run verify`・独立 review をやり直し、PR の検証記録を更新する。CI が未整備・未実行・pending・失敗の状態を成功と扱わず、すべての PR で **CI 成功前に merge しない**。merge はセッションの許可範囲に従う。Branch Protection 等の人間設定は [README](../../../README.md#github-ciと人間による設定) の手順に従い、コード実装と分けて扱う。

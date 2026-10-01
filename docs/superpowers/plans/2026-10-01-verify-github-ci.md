@@ -62,8 +62,8 @@
 
 **Files:**
 
-- Create: `.github/workflows/ci.yml`
-- Modify: `README.md`, `AGENTS.md`, `.codex/skills/anime-prompt-dev/SKILL.md`
+- Create: `.github/workflows/ci.yml`, `.npmrc`
+- Modify: `README.md`, `AGENTS.md`, `.codex/skills/anime-prompt-dev/SKILL.md`, `.codex/skills/anime-prompt-review/SKILL.md`, `.codex/skills/anime-prompt-review/references/review-package.md`
 - Modify as needed: Task 1 の設定ファイル（失敗注入で問題が見つかった場合のみ）
 
 **Interfaces:**
@@ -71,11 +71,11 @@
 - Consumes: Task 1 の `.node-version`、`package-lock.json`、`npm run verify`。
 - Produces: PR で走る `verify` job、README のセットアップ・人間による required check 設定手順、共通 verify を要求する dev Skill。
 
-- [ ] **Step 1: workflow を作る。** `pull_request`、`contents: read`、PR 番号を含む concurrency group、`cancel-in-progress: true`、10分の job timeout を設定する。checkout/setup-node は実在する SHA に固定し、`.node-version` を読み、`npm ci` と `npm run verify` を実行する。Secret 参照は追加しない。
-- [ ] **Step 2: README を更新する。** 選定理由、固定 runtime/npm、`npm ci`、`npm run verify`、整形コマンド、最小 CLI の実行例を記載する。GitHub の required check に `verify` を設定する人間作業を分離し、API key 不要・アプリ本体未実装を明記する。
-- [ ] **Step 3: repo ルールを更新する。** AGENTS.md・dev Skill・README の bootstrap 例外を削除する。dev Skill の local verify を `npm run verify` に置き換え、当該 PR head の CI 成功を merge 条件として維持する。
-- [ ] **Step 4: 各工程の失敗を一時変更で検証する。** 整形違反、unused variable、型不一致、unit assertion failure、smoke assertion failure を1つずつ注入し、各 `npm run verify` が非0終了することを記録する。毎回元に戻す。unit/smoke の各ディレクトリに一時 failing test を追加し、新規 test が検出されることも確認して削除する。
-- [ ] **Step 5: clean install と最終 verify を実行する。** `npm ci`、`npm run verify`、`git diff --check`。Expected: 全コマンド終了コード0。全差分・追加ファイル・追跡対象・ignore と文書リンクを確認する。
-- [ ] **Step 6: 検証済みの Task 2 と計画の完了状態を commit する。** 失敗注入の一時ファイルが残らないことを確認する。
+- [x] **Step 1: workflow を作る。** `pull_request`、`contents: read`、PR 番号を含む concurrency group、`cancel-in-progress: true`、10分の job timeout を設定する。checkout/setup-node は実在する SHA に固定し、`.node-version` を読み、`npm ci` と `npm run verify` を実行する。Secret 参照は追加しない。
+- [x] **Step 2: README を更新する。** 選定理由、固定 runtime/npm、`npm ci`、`npm run verify`、整形コマンド、最小 CLI の実行例を記載する。GitHub の required check に `verify` を設定する人間作業を分離し、API key 不要・アプリ本体未実装を明記する。
+- [x] **Step 3: repo ルールを更新する。** AGENTS.md・dev Skill・README の bootstrap 例外を削除する。dev Skill の local verify を `npm run verify` に置き換え、当該 PR head の CI 成功を merge 条件として維持する。
+- [x] **Step 4: 各工程の失敗を一時変更で検証する。** 整形違反、unused variable、型不一致、unit assertion failure、smoke assertion failure を1つずつ注入し、各 `npm run verify` が非0終了することを記録する。毎回元に戻す。unit/smoke の各ディレクトリに一時 failing test を追加し、新規 test が検出されることも確認して削除する。
+- [x] **Step 5: clean install と最終 verify を実行する。** `npm ci`、`npm run verify`、`git diff --check`。Expected: 全コマンド終了コード0。全差分・追加ファイル・追跡対象・ignore と文書リンクを確認する。
+- [x] **Step 6: 検証済みの Task 2 と計画の完了状態を commit する。** 失敗注入の一時ファイルが残らないことを確認する。
 - [ ] **Step 7: 独立レビューを実施する。** Issue・正本の必要範囲・全差分・固定 revision・検証結果を repo 外の Review Package にまとめる。repo review Skill と Superpowers reviewer template を使い、fresh context の read-only reviewer を起動し、本体 header の model/effort/sandbox を照合する。blocking があれば repo dev Skill の最大3回の修正・verify・再レビューに従う。
 - [ ] **Step 8: レビュー済み差分を引き渡す。** PR 本文を repo 外に用意する。PR 作成の許可が未確定ならレビュー済み結果と本文を提示して確認する。許可済みなら push・PR 作成後に当該 head の CI を確認する。merge は自動実行しない。

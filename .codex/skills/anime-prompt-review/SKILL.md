@@ -40,7 +40,7 @@ Superpowers template の指摘を次の順で返す。
 3. **Cannot verify / Declined to judge**: 各件に確認対象、判断できない／対象外とした理由、追加すべき根拠、PR 前または merge 判断への影響を記す。なければ **なし**。黙って捨てない。
 4. **Verdict: PASS / BLOCKED**: blocking finding が0件で、現在の判断に必要な `cannot verify` が根拠で解消済みの場合だけ `PASS`。blocking または判断に必要な不足が残れば `BLOCKED`。
 
-PR 前に存在しない当該 PR の CI は PR 作成後に確認する。CI 未整備・未実行・pending・失敗を成功と扱わない。[dev Skill の bootstrap 条件](../anime-prompt-dev/SKILL.md#bootstrap-期間の-merge) に当てはまるかを区別する。`PASS` は merge 許可でも CI 成功でもない。
+PR 前に存在しない当該 PR の CI は PR 作成後に確認する。CI 未整備・未実行・pending・失敗を成功と扱わず、すべての PR で最新 head の CI 成功を必須とする。`PASS` は merge 許可でも CI 成功でもない。
 
 ## 指摘の引き継ぎ
 

@@ -23,7 +23,7 @@
 - GitHub の当該 head の CI / status checks の実状態と確認時点。PR 前なら「当該 PR は未作成」を明示し、既存 workflow の有無を添える。
 - reviewer 起動前に確定する requested configuration: model ID / reasoning effort / read-only 方針、予定する起動経路と CLI / runtime version。effective configuration は起動後の確認記録であり、入力 Package の完成条件に含めない。
 
-文書・設定だけの bootstrap PR では README / dev Skill の文書 verify を渡す。まだないアプリのテストを成功扱いしない。Issue #4 で verify / CI が導入された後は共通 verify 入口を用いる。
+文書・設定だけの PR でも共通の `npm run verify` の結果を渡す。未実装機能のテストや未実行の CI を成功扱いしない。
 
 ## Superpowers への受け渡し
 
