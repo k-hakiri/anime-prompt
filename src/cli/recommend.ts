@@ -65,7 +65,7 @@ try {
     const result = await recommend(
       prompt,
       anime.rows,
-      createJevEvaluator(undefined, values.model),
+      createJevEvaluator(undefined, values.model, undefined, { inputProfile }),
       {
         season: values.season as (typeof SEASONS)[number],
         year: Number(values.year),

@@ -44,6 +44,7 @@ test('recommend CLI supports explicit human/JSONL and actual stdin TTY with UI o
       ...process.env,
       TYPESAFE_API_KEY: 'synthetic-test-key',
       ANIME_TEST_FAILURE: '',
+      ANIME_PROMPT_DEBUG: '',
     };
     function run(extra: string[], failure = '') {
       return spawnSync(process.execPath, [...args, ...extra], {
@@ -156,6 +157,112 @@ test('recommend CLI supports explicit human/JSONL and actual stdin TTY with UI o
     const malformed = run(['--prompt', prompt]);
     assert.equal(malformed.status, 1);
     assert.equal(malformed.stdout, '');
+  } finally {
+    rmSync(directory, { recursive: true });
+  }
+});
+
+test('debug CLI diagnostics preserve stdout and exits while redacting reflected input', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'anime-debug-'));
+  try {
+    const row = normalizeAnime({
+      id: 1,
+      isAdult: false,
+      season: 'SUMMER',
+      seasonYear: 2026,
+      title: { native: 'PRIVATE title' },
+      description: 'PRIVATE description',
+      tags: [{ name: 'PRIVATE tag', rank: 90 }],
+      source: 'MANGA',
+    });
+    const raw = join(directory, 'raw.jsonl');
+    writeFileSync(raw, JSON.stringify(row) + '\n');
+    for (const profile of ['basic', 'full'])
+      for (const format of ['human', 'jsonl']) {
+        for (const failure of ['', 'debug-http', 'network']) {
+          for (const debug of ['', '0', '1']) {
+            const result = spawnSync(
+              process.execPath,
+              [
+                '--import',
+                './tests/fixtures/jev-fetch.ts',
+                'src/cli/recommend.ts',
+                '--raw',
+                raw,
+                '--season',
+                'SUMMER',
+                '--year',
+                '2026',
+                '--prompt',
+                'PRIVATE mood',
+                '--input-profile',
+                profile,
+                '--format',
+                format,
+              ],
+              {
+                encoding: 'utf8',
+                timeout: 5000,
+                env: {
+                  ...process.env,
+                  TYPESAFE_API_KEY: 'synthetic-test-key',
+                  ANIME_TEST_FAILURE: failure,
+                  ANIME_PROMPT_DEBUG: debug,
+                },
+              },
+            );
+            assert.ifError(result.error);
+            assert.equal(result.status, failure ? 1 : 0, result.stderr);
+            assert.doesNotMatch(
+              result.stderr,
+              /PRIVATE|synthetic-test-key|authorization|reflected/i,
+            );
+            if (failure) assert.equal(result.stdout, '');
+            else if (format === 'jsonl')
+              assert.equal(JSON.parse(result.stdout).input_profile, profile);
+            else assert.match(result.stdout, /1\. PRIVATE title/);
+            if (debug !== '1') {
+              assert.equal(
+                result.stderr,
+                failure === 'debug-http'
+                  ? 'Jev HTTP 400\n'
+                  : failure === 'network'
+                    ? 'Jev request failed\n'
+                    : '',
+              );
+              continue;
+            }
+            const records = result.stderr
+              .split('\n')
+              .filter((line) => line.startsWith('Jev debug '))
+              .map((line) => JSON.parse(line.slice(10)));
+            assert.equal(records.length, 2);
+            assert.equal(records[0].input_profile, profile);
+            assert.equal(records[0].candidate_count, 1);
+            assert.equal(records[0].tags_total, profile === 'full' ? 1 : 0);
+            assert.ok(
+              records[0].request_body_bytes > records[0].criteria_bytes,
+            );
+            if (failure === 'network')
+              assert.equal(records[1].event, 'request_failed');
+            else {
+              assert.equal(records[1].http_status, failure ? 400 : 200);
+              assert.equal(
+                records[1].error_code,
+                failure ? 'max_tokens_exceeded' : null,
+              );
+              assert.equal(
+                records[1].response_content_type,
+                'application/json',
+              );
+              assert.equal(
+                records[1].response_content_length,
+                failure ? 47 : null,
+              );
+            }
+          }
+        }
+      }
   } finally {
     rmSync(directory, { recursive: true });
   }
