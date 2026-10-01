@@ -19,6 +19,7 @@ export function normalizeAnime(value: unknown): Anime {
     .filter((name) => typeof name === 'string' && name.trim());
   return parseAnime({
     anime_id: id,
+    isAdult: media.isAdult ?? null,
     title,
     description: media.description || null,
     genres: media.genres ?? [],

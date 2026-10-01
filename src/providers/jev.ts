@@ -5,6 +5,11 @@ export interface ScoreQuestion {
   instructions: string;
   criteria: string[];
 }
+export interface ChoiceQuestion {
+  type: 'choice';
+  instructions: string;
+  criteria: Record<string, Record<string, unknown>>;
+}
 export interface JevResult {
   model: string;
   answers: Record<string, unknown>;
@@ -12,7 +17,7 @@ export interface JevResult {
 }
 export type JevEvaluator = (
   state: unknown,
-  questions: Record<string, ScoreQuestion>,
+  questions: Record<string, ScoreQuestion | ChoiceQuestion>,
 ) => Promise<JevResult>;
 export const JEV_MODEL = 'jev-1.13.0';
 export const JEV_ENDPOINT = 'https://api.typesafe.ai/v1/systemone';

@@ -2,7 +2,8 @@
 import { parseArgs } from 'node:util';
 import { readFile } from 'node:fs/promises';
 import { SEASONS, parseAnime } from '../anime/schema.ts';
-import { loadSchema, parseFeatureRecord } from '../features/schema.ts';
+import { createHash } from 'node:crypto';
+import { parseInputProfile } from '../anime/profile.ts';
 import { createJevEvaluator, JEV_MODEL } from '../providers/jev.ts';
 import { recommend, renderHuman } from '../recommend/run.ts';
 import { readPrompt } from './prompt.ts';
@@ -10,13 +11,16 @@ import { readPrompt } from './prompt.ts';
 async function readJsonl<T>(
   path: string,
   parse: (value: unknown) => T,
-): Promise<T[]> {
+): Promise<{ source: string; rows: T[] }> {
   const source = await readFile(path, 'utf8');
   try {
-    return source
-      .split(/\r?\n/)
-      .filter((line) => line.trim())
-      .map((line) => parse(JSON.parse(line)));
+    return {
+      source,
+      rows: source
+        .split(/\r?\n/)
+        .filter((line) => line.trim())
+        .map((line) => parse(JSON.parse(line))),
+    };
   } catch {
     throw new Error('Invalid candidate JSONL');
   }
@@ -28,8 +32,7 @@ try {
       prompt: { type: 'string' },
       format: { type: 'string', default: 'human' },
       raw: { type: 'string' },
-      features: { type: 'string' },
-      schema: { type: 'string' },
+      'input-profile': { type: 'string', default: 'full' },
       model: { type: 'string', default: JEV_MODEL },
       season: {
         type: 'string',
@@ -41,7 +44,7 @@ try {
   });
   if (values.help)
     process.stdout.write(
-      'Usage: anime-recommend [--prompt TEXT] [--format human|jsonl] [--season FALL --year 2026] [--raw PATH --features PATH] [--schema PATH] [--model ID]\n',
+      'Usage: anime-recommend [--prompt TEXT] [--format human|jsonl] [--season FALL --year 2026] [--raw PATH] [--input-profile basic|full] [--model ID]\n',
     );
   else {
     if (values.format !== 'human' && values.format !== 'jsonl')
@@ -52,25 +55,24 @@ try {
       Number(values.year) < 1940
     )
       throw new Error('Invalid season/year');
+    const inputProfile = parseInputProfile(values['input-profile']);
     const prompt = await readPrompt(values.prompt);
     const seasonId = `${values.year}-${values.season!.toLowerCase()}`;
-    const schema = await loadSchema(values.schema);
     const anime = await readJsonl(
       values.raw ?? `data/raw/${seasonId}.jsonl`,
       parseAnime,
     );
-    const features = await readJsonl(
-      values.features ??
-        `data/features/${seasonId}-full-${schema.version}.jsonl`,
-      parseFeatureRecord,
-    );
     const result = await recommend(
       prompt,
-      anime,
-      features,
-      schema,
+      anime.rows,
       createJevEvaluator(undefined, values.model),
-      values.model,
+      {
+        season: values.season as (typeof SEASONS)[number],
+        year: Number(values.year),
+        inputProfile,
+        model: values.model,
+        rawSha256: createHash('sha256').update(anime.source).digest('hex'),
+      },
     );
     process.stdout.write(
       values.format === 'jsonl'

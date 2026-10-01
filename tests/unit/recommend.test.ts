@@ -9,7 +9,7 @@ import {
 } from '../../src/features/schema.ts';
 import { buildFeatures } from '../../src/features/build.ts';
 import { prepareCandidates, rankCandidates } from '../../src/recommend/rank.ts';
-import { recommend } from '../../src/recommend/run.ts';
+import { recommend } from '../../src/recommend/legacy.ts';
 import { readPrompt } from '../../src/cli/prompt.ts';
 import type { JevEvaluator } from '../../src/providers/jev.ts';
 

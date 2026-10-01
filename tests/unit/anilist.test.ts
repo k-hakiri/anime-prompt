@@ -39,6 +39,8 @@ test('fetches all pages with fixed season/year and deterministic IDs', async () 
   const request: typeof fetch = async (_url, init) => {
     const body = JSON.parse(String(init?.body));
     calls.push(body.variables);
+    assert.match(body.query, /isAdult: false/);
+    assert.match(body.query, /id isAdult title/);
     return Response.json({
       data: {
         Page: {
@@ -88,4 +90,11 @@ test('HTTP, GraphQL, malformed JSON/page and duplicate IDs fail', async () => {
     }),
     /AniList request failed/,
   );
+});
+
+test('adult status is preserved; old cache status remains unknown and invalid status fails', () => {
+  assert.equal(normalizeAnime({ id: 1, isAdult: false }).isAdult, false);
+  assert.equal(normalizeAnime({ id: 2, isAdult: true }).isAdult, true);
+  assert.equal(normalizeAnime({ id: 3 }).isAdult, null);
+  assert.throws(() => normalizeAnime({ id: 4, isAdult: 'false' }));
 });

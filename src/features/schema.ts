@@ -13,7 +13,10 @@ export const AXES = [
 ] as const;
 export type Axis = (typeof AXES)[number];
 export type Vector = Record<Axis, { score: number; confidence: number }>;
-export type InputProfile = 'basic' | 'full';
+import { parseInputProfile } from '../anime/profile.ts';
+import type { InputProfile } from '../anime/profile.ts';
+export { parseInputProfile };
+export type { InputProfile };
 export interface FeatureSchema {
   version: string;
   hash: string;
@@ -72,11 +75,6 @@ export function parseVector(value: unknown): Vector {
     };
   }
   return vector;
-}
-export function parseInputProfile(value: unknown): InputProfile {
-  if (value !== 'basic' && value !== 'full')
-    throw new Error('Input profile must be basic or full');
-  return value;
 }
 export interface Provenance {
   feature_schema_version: string;

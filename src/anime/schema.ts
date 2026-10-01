@@ -2,6 +2,7 @@ export const SEASONS = ['WINTER', 'SPRING', 'SUMMER', 'FALL'] as const;
 export type Season = (typeof SEASONS)[number];
 export interface Anime {
   anime_id: number;
+  isAdult: boolean | null;
   title: string;
   description: string | null;
   genres: string[];
@@ -56,8 +57,11 @@ export function parseAnime(value: unknown): Anime {
     throw new Error('Invalid season');
   if (!Array.isArray(row.genres) || !Array.isArray(row.tags))
     throw new Error('Expected genres and tags arrays');
+  if (row.isAdult != null && typeof row.isAdult !== 'boolean')
+    throw new Error('Invalid isAdult');
   return {
     anime_id,
+    isAdult: row.isAdult == null ? null : (row.isAdult as boolean),
     title: text(row.title),
     description: row.description === null ? null : text(row.description),
     genres: row.genres.map(text),

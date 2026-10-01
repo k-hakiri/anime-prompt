@@ -22,8 +22,10 @@ description: Use when independently reviewing an Anime Prompt branch or PR befor
 - Issue の Acceptance Criteria を一つずつ満たし、Parent / dependency / 後続 Issue と矛盾しないか。この PR を merge した後に次の Issue を実行可能か。
 - [公開契約](../anime-prompt-dev/references/contracts.md) を守るか。stdout は結果だけで、進捗・warning・debug・対話案内は stderr か。JSONL は1行1JSONとして機械処理できるか。
 - interactive mode と `--prompt` 非対話モード、TTY / 非 TTY、`--format human` / `jsonl`、失敗時 non-zero exit の契約を壊さないか。
-- raw → features → recommendation の責務分離、fetch 時に AI API を呼ばない境界、薄い YAML batch の役割を保つか。
-- raw / features の `anime_id` join、`feature_schema_version`、`input_profile`、provider / model、score / confidence を失わないか。再実行に必要な入力・設定・usage・cost・latency を残すか。
+- 主経路の raw → direct recommendation → Top 5 の責務分離、fetch 時に AI API を呼ばない境界、薄い YAML batch の役割を保つか。主推薦が FeatureRecord / MoodProfile / feature schema / ローカル距離計算へ依存していないか。
+- 直接推薦の basic / full の項目集合と full 既定、同一 raw・profile の再利用、対象シーズン・年の候補と成人向け除外を守るか。人気・スコア・format・duration の追加フィルタを無断で増やしていないか。
+- Jev Choice の state と criteria、anime_id キー、probabilities 降順の Top 5、human の選択確率表示を確認する。全候補の probabilities / confidence、input_profile、provider / model / strategy、再実行に必要な入力・設定・candidate_ids・raw hash・usage・cost・latency を残すか。
+- **旧6軸方式を扱う追加実験時のみ**、raw / features の anime_id join、feature_schema_version、schema・入力 hash、生成条件、score / confidence の保持と、特徴量生成の前処理コスト・時間と推薦時のコスト・時間の分離を確認する。旧コードを保持し、これらを主推薦経路の必須契約にしない。
 - Secret、実取得 raw、生成 feature、benchmark results、個人メモが repo / log / fixture に漏れないか。公開 sample は最小の合成データか。ignore 済みでも追跡されたファイルを見落とさないか。
 - テストは fixture / mock で再現でき、AniList / Jev / OpenAI を不用意に実呼び出ししないか。production Credential を CI に渡さないか。
 - benchmark の候補・気分入力・嗜好を揃え、Luna / Sol のモデル以外の入力・指示・schema・effort を無断で変えていないか。reviewer 用の medium と実験用の effort を混同しないか。
