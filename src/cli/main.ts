@@ -4,7 +4,7 @@ if (parseArgs(process.argv.slice(2)) === 'help') {
   process.stdout.write(
     'Usage: node src/cli/main.ts --help\n\n' +
       'Anime Prompt: CLI scaffold for local and CI verification.\n' +
-      'Fetching, feature generation, and recommendation are not implemented yet (Issues #7–#9).\n',
+      'Commands: anime-fetch-anilist, anime-build-features, anime-recommend. See README for usage.\n',
   );
 } else {
   process.stderr.write(

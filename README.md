@@ -6,7 +6,7 @@
 
 ## 現在の状態
 
-TypeScript の最小 CLI と、ローカル・GitHub CI 共通の品質ゲートを整備しています。取得・特徴量生成・推薦の本体は [Issue #7](https://github.com/k-hakiri/anime-prompt/issues/7)・[#8](https://github.com/k-hakiri/anime-prompt/issues/8)・[#9](https://github.com/k-hakiri/anime-prompt/issues/9) で実装します。独立 review は [review Skill](.codex/skills/anime-prompt-review/SKILL.md) に従います。Review Package・判定条件と、reviewer 本体を `gpt-6.1-sol` / `medium` で起動する方法を定めています。
+TypeScript の取得・Jev特徴量生成・推薦 CLI と、ローカル・GitHub CI 共通の品質ゲートを提供します。[Issue #7](https://github.com/k-hakiri/anime-prompt/issues/7)・[#8](https://github.com/k-hakiri/anime-prompt/issues/8)・[#9](https://github.com/k-hakiri/anime-prompt/issues/9) の範囲です。Luna / Sol 直接推薦・YAML batch・benchmark 集計は後続 Issue です。独立 review は [review Skill](.codex/skills/anime-prompt-review/SKILL.md) に従い、reviewer を `gpt-6.1-sol` / `medium` で起動します。
 
 ## セットアップと検証
 
@@ -68,6 +68,26 @@ node src/cli/build_features.ts --schema features/schema/v1.yaml --input-profile 
 basic は title / description / genres / format / episodes / duration、full はそれに tags / rank / source を追加します。studio や人気指標は渡しません。Jev の [公式 HTTP API](https://docs.typesafe.ai/api) を使う adapter を domain から分離しています。API key は環境変数だけから取得し、API の error body はログへ出しません。自動 retry はなく、失敗時は stderr と終了コード1を返します。逐次処理なので途中で失敗した場合、stdout に先行する有効な行が残ります。保存時は終了コードを確認してください。
 
 [FeatureRecord / MoodProfile](src/features/schema.ts) は作品特徴量とユーザー条件の別 schema です。作品側には anime_id / feature_schema_version / input_profile / provider / resolved・requested model / prompt_version / schema・入力の SHA256 / usage / latency_ms / generated_at を残し、作品メタデータは複製しません。MoodProfile は original_prompt をそのまま保持し、同じ6軸・schema version・hash で比較できます。推薦時の自然文変換は #9 で実装します。計測用の usage と時間は保存しますが、単価・コスト集計は後続の benchmark Issue で扱います。
+
+## 気分から推薦 (#9)
+
+```sh
+# 先に取得と特徴量生成を実行し、TYPESAFE_API_KEY を環境変数に設定
+node src/cli/recommend.ts --season FALL --year 2026
+node src/cli/recommend.ts --season FALL --year 2026 \
+  --prompt "仕事帰りで疲れた。気楽に旅や世界観を楽しみたい" --format jsonl \
+  > data/results/after-work.jsonl
+# npm link 後は anime-recommend でも実行可能
+anime-recommend
+```
+
+既定は UTC の現在シーズン・年、human 出力です。取得済み `data/raw/{year}-{season}.jsonl` と生成済み `data/features/{year}-{season}-full-{schemaVersion}.jsonl` を使用します。`--raw PATH` / `--features PATH` / `--schema PATH` / `--model ID` で再現条件を指定できます。basic で生成したファイルは `--features` で指定してください。`--prompt` がなければ stdin TTY で1行の入力を受け付け、案内は stderr に出します。パイプ入力はエラーになります。`--prompt` の文字列は空白を含めてそのまま保持します。
+
+Jev で気分を同じ6軸へ1回で変換し、等重みのユークリッド距離（6軸の二乗差の平均の平方根）で候補全件を順位付けします。confidence はランキングへ掛けません。同点は anime_id 昇順、上位5件（候補が5件未満なら全件）を返します。推薦理由は希望と作品の値が近い3軸から計算します。ID集合・重複・schema version/hash・生成条件・作品入力 hash の不一致は API 呼び出し前に失敗します。
+
+JSONL は1実行1行で、input_prompt / input_profile（元文・version・6軸）/ provider / resolved model / strategy / 順位・anime_id・title・score・reason を含む recommendations / usage / latency_ms / timestamp を記録します。metadata は candidate_ids、raw・features の hash、schema・prompt・requested model・生成条件・等重み・top_k を保持します。価格設定は後続 Issue のため runtime_cost_usd は null、人間向けには「未計算」と表示します。API 障害、不正入力、データ欠損は stderr と終了コード1で返し、結果を出しません。
+
+テストは API を呼ばず、unit と子プロセス smoke で確認します。実 stdin TTY を作る smoke test のため Python 3 も使用します（GitHub の Ubuntu runner に同梱）。
 
 ## 開発
 
