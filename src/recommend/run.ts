@@ -73,12 +73,23 @@ export async function recommend(
 export function renderHuman(
   result: Awaited<ReturnType<typeof recommend>>,
 ): string {
+  const labels: Record<string, string> = {
+    healing: '癒やし度',
+    cognitive_load: '頭を使う度合い',
+    seriousness: 'シリアス度',
+    world_building: '世界観',
+    character_focus: 'キャラクター',
+    travel: '旅・土地性',
+  };
   return (
     `--- Jev ---\n` +
     result.recommendations
       .map(
         (row) =>
-          `${row.rank}. ${row.title} (ID ${row.anime_id})\n   ${row.reason}\n`,
+          `${row.rank}. ${row.title} (ID ${row.anime_id})\n   ${row.reason.replace(
+            /(healing|cognitive_load|seriousness|world_building|character_focus|travel):/g,
+            (_, axis: string) => labels[axis] + ':',
+          )}\n`,
       )
       .join('') +
     `time: ${result.latency_ms.toFixed(1)} ms\nusage: input ${result.usage.input_tokens}, output ${result.usage.output_tokens} tokens\ncost: 未計算\n`

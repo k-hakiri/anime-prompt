@@ -61,11 +61,17 @@ test('recommend CLI supports explicit human/JSONL and actual stdin TTY with UI o
     assert.equal(jsonl.stdout.trim().split('\n').length, 1);
     const record = JSON.parse(jsonl.stdout);
     assert.equal(record.input_prompt, prompt);
+    assert.match(record.recommendations[0].reason, /healing:/);
+    assert.match(record.recommendations[0].reason, /cognitive_load:/);
     assert.equal(record.recommendations[0].anime_id, 1);
     assert.equal(record.input_profile.profile_schema_version, 'v1');
     const human = run(['--prompt', prompt]);
     assert.equal(human.status, 0);
     assert.match(human.stdout, /1\. Synthetic Journey/);
+    assert.match(human.stdout, /癒やし度:/);
+    assert.match(human.stdout, /頭を使う度合い:/);
+    assert.match(human.stdout, /シリアス度:/);
+    assert.doesNotMatch(human.stdout, /healing:|cognitive_load:|seriousness:/);
     assert.match(human.stdout, /time:/);
     assert.equal(human.stderr, '');
     for (const [extra, failure] of [
