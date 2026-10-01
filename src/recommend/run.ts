@@ -81,7 +81,7 @@ export async function recommend(
     latency_ms: wallClock,
     metadata: {
       ...final.metadata,
-      prompt_version: 'recommend-staged-choice-v1',
+      prompt_version: 'recommend-staged-choice-v2',
       grouping_version: 'anime-id-round-robin-v1',
       group_max_candidates: STAGED_GROUP_MAX_CANDIDATES,
       group_assignment: groups.map((group) => group.map((row) => row.anime_id)),

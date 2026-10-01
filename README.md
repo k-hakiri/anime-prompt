@@ -108,6 +108,8 @@ anime-recommend --provider sol --input-profile basic --season SUMMER --year 2026
 
 Luna / Sol は **basic のみ**対応します。`--input-profile basic` を明示してください。full（省略時の既定値も含む）は明示エラーにし、basic へ自動変更しません。既存 Jev の basic one-shot / full staged 経路と full 既定は維持します。
 
+推薦判断は [共通指示](src/recommend/instructions.ts) の「ユーザーの mood に示された今の気分で見る作品として、最も合う候補を選んでください。」に Jev / Luna / Sol で統一し、意味的一致・背後の視聴欲求のどちらを重視するかは指定しません。作品情報内の指示を無視する文も共通です。Luna / Sol には順位・件数・重複禁止など出力形式固有の指示だけを追加します。prompt_version は Jev が `recommend-choice-v2`（full の集約は `recommend-staged-choice-v2`）、Luna / Sol が `recommend-openai-v2` です。以前の指示で取得した結果は v1 として区別し、混ぜて比較しないでください。
+
 両モデルへ同じ指示・候補・schema・`reasoning.effort: none` を Responses API の1 request で渡します。Structured Outputs は順位順の `recommendations: [{anime_id}]` だけを返し、ID の enum を候補集合に固定します。ローカルでも候補内 ID・重複なし・ちょうど5件（5件未満なら全件）を検証し、title は raw 候補から復元します。拒否、不完全な応答、不正な出力、HTTP / 通信失敗は stdout に結果を出さず、stderr の診断と終了コード1で返します。API key / Authorization / prompt / 作品本文 / API のエラー本文は診断へ含めません。
 
 Luna / Sol の JSONL は `result_schema_version: v3`、`provider: luna|sol`、`strategy: openai-one-shot-v1` です。rank / anime_id / title の推薦、input_prompt / input_profile、resolved model、`reasoning_effort: none`、usage の input_tokens / output_tokens と API が返した cached_tokens / reasoning_tokens、latency_ms、timestamp を保存します。metadata に requested_model、reasoning_effort、candidate_ids、raw_sha256、input_sha256、prompt_version、season / year / candidate_filter / top_k を保持します。input_sha256 は model・指示・構造化 schema・effort を含む送信 JSON 全体の SHA256 なので、モデル間では異なります。候補集合の同一性は candidate_ids と raw_sha256 で確認してください。
@@ -155,7 +157,7 @@ full の JSONL も v2 / 1行1JSONです。既存の recommendations / probabilit
 - `first_stages`: group_index（0始まり）、candidate_ids、resolved model、probabilities / normalized_probabilities、confidence、usage、latency_ms、input_sha256 / prompt_version、確率検証情報、selected_ids（確率上位5件）。
 - `finalists`: final に渡した anime_id 昇順の ID 配列。`final_stage` は first と同じ call 記録（group_index を除く）。
 - `api_call_count`、`usage`（全 call の token usage 合計）、`api_latency_sum_ms`（各 call latency の単純合計）、`wall_clock_latency_ms`（first stage 開始から最終 Top 5 確定まで）。既存の `latency_ms` は wall-clock と同じ値です。
-- metadata の `prompt_version: recommend-staged-choice-v1` と `input_sha256`。入力 hash は strategy / grouping_version / group_max_candidates / group 順の first_stage_inputs hash / final_stage_input hash の JSON から計算し、各 call の hash は既存と同じ state / questions の JSON から計算します。
+- metadata の `prompt_version: recommend-staged-choice-v2` と `input_sha256`。入力 hash は strategy / grouping_version / group_max_candidates / group 順の first_stage_inputs hash / final_stage_input hash の JSON から計算し、各 call の hash は既存と同じ state / questions の JSON から計算します。
 
 human は最終 Top 5・final confidence・合計 usage・wall-clock の表示に留めます。コスト計算は引き続き未実装で null ですが、算出時は全 call の token usage 合計を使い、5 call だから5倍とは扱いません。full の複数 call を basic one-shot の主比較に混ぜず、Luna / Sol の API 呼び出し形態まで揃えることは目的にしません。
 

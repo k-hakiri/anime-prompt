@@ -139,7 +139,7 @@ test('full stages start in parallel, wait for all groups, preserve metadata and 
     anime.map((row) => row.anime_id),
   );
   assert.equal(result.metadata.raw_sha256, 'raw-hash');
-  assert.equal(result.metadata.prompt_version, 'recommend-staged-choice-v1');
+  assert.equal(result.metadata.prompt_version, 'recommend-staged-choice-v2');
   assert.match(result.metadata.input_sha256, /^[a-f0-9]{64}$/);
   assert.equal(result.group_count, 4);
   assert.equal(result.api_call_count, 5);
