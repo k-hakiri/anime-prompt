@@ -6,6 +6,11 @@ import { createHash } from 'node:crypto';
 import { parseInputProfile } from '../anime/profile.ts';
 import { createJevEvaluator, JEV_MODEL } from '../providers/jev.ts';
 import { recommend, renderHuman } from '../recommend/run.ts';
+import {
+  createOpenAIRequester,
+  resolveOpenAIModel,
+} from '../providers/openai.ts';
+import { recommendOpenAI, renderOpenAIHuman } from '../recommend/openai.ts';
 import { readPrompt } from './prompt.ts';
 
 async function readJsonl<T>(
@@ -33,7 +38,8 @@ try {
       format: { type: 'string', default: 'human' },
       raw: { type: 'string' },
       'input-profile': { type: 'string', default: 'full' },
-      model: { type: 'string', default: JEV_MODEL },
+      provider: { type: 'string', default: 'jev' },
+      model: { type: 'string' },
       season: {
         type: 'string',
         default: SEASONS[Math.floor(now.getUTCMonth() / 3)],
@@ -44,7 +50,7 @@ try {
   });
   if (values.help)
     process.stdout.write(
-      'Usage: anime-recommend [--prompt TEXT] [--format human|jsonl] [--season FALL --year 2026] [--raw PATH] [--input-profile basic|full] [--model ID]\n',
+      'Usage: anime-recommend [--prompt TEXT] [--format human|jsonl] [--season FALL --year 2026] [--raw PATH] [--input-profile basic|full] [--provider jev|luna|sol] [--model ID]\n',
     );
   else {
     if (values.format !== 'human' && values.format !== 'jsonl')
@@ -56,29 +62,57 @@ try {
     )
       throw new Error('Invalid season/year');
     const inputProfile = parseInputProfile(values['input-profile']);
+    const provider = values.provider;
+    if (provider !== 'jev' && provider !== 'luna' && provider !== 'sol')
+      throw new Error('Provider must be jev, luna or sol');
+    if (provider === 'jev' && values.model && !values.model.startsWith('jev-'))
+      throw new Error('Model must match the selected provider family');
+    const model =
+      provider === 'jev'
+        ? (values.model ?? JEV_MODEL)
+        : resolveOpenAIModel(provider, values.model);
+    if (provider !== 'jev' && inputProfile !== 'basic')
+      throw new Error(
+        'Luna / Sol support only basic input profile; specify --input-profile basic',
+      );
     const prompt = await readPrompt(values.prompt);
     const seasonId = `${values.year}-${values.season!.toLowerCase()}`;
     const anime = await readJsonl(
       values.raw ?? `data/raw/${seasonId}.jsonl`,
       parseAnime,
     );
-    const result = await recommend(
-      prompt,
-      anime.rows,
-      createJevEvaluator(undefined, values.model, undefined, { inputProfile }),
-      {
-        season: values.season as (typeof SEASONS)[number],
-        year: Number(values.year),
-        inputProfile,
-        model: values.model,
-        rawSha256: createHash('sha256').update(anime.source).digest('hex'),
-      },
-    );
-    process.stdout.write(
-      values.format === 'jsonl'
-        ? JSON.stringify(result) + '\n'
-        : renderHuman(result),
-    );
+    const options = {
+      season: values.season as (typeof SEASONS)[number],
+      year: Number(values.year),
+      inputProfile,
+      model,
+      rawSha256: createHash('sha256').update(anime.source).digest('hex'),
+    };
+    if (provider === 'jev') {
+      const result = await recommend(
+        prompt,
+        anime.rows,
+        createJevEvaluator(undefined, model, undefined, { inputProfile }),
+        options,
+      );
+      process.stdout.write(
+        values.format === 'jsonl'
+          ? JSON.stringify(result) + '\n'
+          : renderHuman(result),
+      );
+    } else {
+      const result = await recommendOpenAI(
+        prompt,
+        anime.rows,
+        createOpenAIRequester(),
+        { ...options, provider },
+      );
+      process.stdout.write(
+        values.format === 'jsonl'
+          ? JSON.stringify(result) + '\n'
+          : renderOpenAIHuman(result),
+      );
+    }
   }
 } catch (error) {
   process.stderr.write(

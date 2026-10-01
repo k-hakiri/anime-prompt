@@ -88,9 +88,35 @@ anime-recommend --season SUMMER --year 2026 --input-profile basic
 anime-recommend --season SUMMER --year 2026 --input-profile full
 ```
 
-既定は UTC の現在シーズン・年、human 出力、`full` profile です。取得済み `data/raw/{year}-{season}.jsonl` を使用します。`--raw PATH` / `--model ID` で入力とモデルを指定できます。`--input-profile basic|full` は特徴量生成と同じ項目集合を使い、basic は title / description / genres / format / episodes / duration、full は basic + tags（name / rank）/ source です。studio・人気・スコアは渡しません。主比較は `basic` / one-shot に固定し、Jev / Luna / Sol で同じ raw・profile・自然文を使用してください。`full` / staged は豊富な metadata を使う追加実験として別集計します。CLI の既定 profile は互換性のため full のままです。
+既定は provider `jev`、UTC の現在シーズン・年、human 出力、`full` profile です。取得済み `data/raw/{year}-{season}.jsonl` を使用します。`--raw PATH` / `--model ID` で入力とモデルを指定できます。`--input-profile basic|full` は特徴量生成と同じ項目集合を使い、basic は title / description / genres / format / episodes / duration、full は basic + tags（name / rank）/ source です。studio・人気・スコアは渡しません。主比較は `basic` / one-shot に固定し、Jev / Luna / Sol で同じ raw・profile・自然文を使用してください。`full` / staged は豊富な metadata を使う追加実験として別集計します。CLI の既定 profile は互換性のため full のままです。
 
 `--prompt` がなければ stdin TTY で1行の入力を受け付け、案内は stderr に出します。パイプ入力はエラーになります。`--prompt` の文字列は空白を含めてそのまま保持します。
+
+### Luna / Sol の basic one-shot (#25)
+
+```sh
+# OPENAI_API_KEY を環境変数に設定。同じ raw と自然文を各 provider へ渡す
+anime-recommend --provider luna --input-profile basic --season SUMMER --year 2026 \
+  --prompt "仕事帰りで疲れた。気楽に旅や世界観を楽しみたい" --format jsonl \
+  > data/results/luna-after-work.jsonl
+anime-recommend --provider sol --input-profile basic --season SUMMER --year 2026 \
+  --prompt "仕事帰りで疲れた。気楽に旅や世界観を楽しみたい" --format jsonl \
+  > data/results/sol-after-work.jsonl
+```
+
+`--provider jev|luna|sol` で明示選択します。既定モデルは Jev が `jev-1.13.0`、Luna が `gpt-5.6-luna`、Sol が `gpt-5.6-sol` です。`--model` は選んだ provider の family のみ許可し、Jev は `jev-` prefix、Luna / Sol は既定 ID またはその `-YYYY-MM-DD` snapshot ID を受け付けます。snapshot の実際の利用可否は API が判定します。別 family や別 provider のモデルを指定すると呼び出し前に失敗します。
+
+Luna / Sol は **basic のみ**対応します。`--input-profile basic` を明示してください。full（省略時の既定値も含む）は明示エラーにし、basic へ自動変更しません。既存 Jev の basic one-shot / full staged 経路と full 既定は維持します。
+
+推薦判断は [共通指示](src/recommend/instructions.ts) の「ユーザーの mood に示された今の気分で見る作品として、最も合う候補を選んでください。」に Jev / Luna / Sol で統一し、意味的一致・背後の視聴欲求のどちらを重視するかは指定しません。作品情報内の指示を無視する文も共通です。Luna / Sol には順位・件数・重複禁止など出力形式固有の指示だけを追加します。prompt_version は Jev が `recommend-choice-v2`（full の集約は `recommend-staged-choice-v2`）、Luna / Sol が `recommend-openai-v2` です。以前の指示で取得した結果は v1 として区別し、混ぜて比較しないでください。
+
+両モデルへ同じ指示・候補・schema・`reasoning.effort: none` を Responses API の1 request で渡します。Structured Outputs は順位順の `recommendations: [{anime_id}]` だけを返し、ID の enum を候補集合に固定します。ローカルでも候補内 ID・重複なし・ちょうど5件（5件未満なら全件）を検証し、title は raw 候補から復元します。拒否、不完全な応答、不正な出力、HTTP / 通信失敗は stdout に結果を出さず、stderr の診断と終了コード1で返します。API key / Authorization / prompt / 作品本文 / API のエラー本文は診断へ含めません。
+
+Luna / Sol の JSONL は `result_schema_version: v3`、`provider: luna|sol`、`strategy: openai-one-shot-v1` です。rank / anime_id / title の推薦、input_prompt / input_profile、resolved model、`reasoning_effort: none`、usage の input_tokens / output_tokens と API が返した cached_tokens / reasoning_tokens、latency_ms、timestamp を保存します。metadata に requested_model、reasoning_effort、candidate_ids、raw_sha256、input_sha256、prompt_version、season / year / candidate_filter / top_k を保持します。input_sha256 は model・指示・構造化 schema・effort を含む送信 JSON 全体の SHA256 なので、モデル間では異なります。候補集合の同一性は candidate_ids と raw_sha256 で確認してください。
+
+Jev の v2 と異なり、probabilities / normalized_probabilities / confidence / recommendation probability はありません。human 表示は順位・タイトル・時間・usage です。runtime_cost_usd は未実装のため null（human は「未計算」）を維持します。比較できるのは順位・選択結果・usage・latency・cost であり、OpenAI の確率を捏造しません。実 API 結果は Git 管理外の `data/results/` へ保存してください。unit / smoke は合成 fixture と mock fetch を使い、OpenAI 実 API は呼びません。
+
+公式資料（確認日: 2026-10-01）: [Luna](https://developers.openai.com/api/docs/models/gpt-5.6-luna)、[Sol](https://developers.openai.com/api/docs/models/gpt-5.6-sol)、[Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs)。
 
 ### Jev の診断 (#18)
 
@@ -107,9 +133,9 @@ full の情報量によっては Jev の token 上限に達します。bytes は
 
 主比較の `basic` は自然文を state の mood、全候補作品を anime_id キーの Choice criteria として Jev へ1回渡します。[Choice API](https://docs.typesafe.ai/api) の全候補の確率分布を降順に並べ、同点は anime_id 昇順、上位5件（候補が5件未満なら全件）を返します。human 表示は順位・タイトル・選択確率を中心とし、長文理由は生成しません。
 
-候補は指定シーズン・年に一致し、`isAdult: false` と確認できる作品です。成人向け作品と成人向け状態が不明な作品は除外します。**旧 raw キャッシュは isAdult を持たないため、取得 CLI で再取得してください。** 人気・スコア・format・durationによる足切りはしません。候補0件・重複ID・Choice上限255件超過は API 呼び出し前に失敗し、候補を黙って切り捨てません。特徴量の事前生成は不要となり、旧 `--features` / `--schema` オプションは主推薦 CLI から削除しました。旧6軸方式の関数とテストは追加実験用に保持しています。
+候補は指定シーズン・年に一致し、`isAdult: false` と確認できる作品です。成人向け作品と成人向け状態が不明な作品は除外します。**旧 raw キャッシュは isAdult を持たないため、取得 CLI で再取得してください。** 人気・スコア・format・durationによる足切りはしません。候補0件・重複ID・Jev Choice上限255件超過は API 呼び出し前に失敗し、候補を黙って切り捨てません。特徴量の事前生成は不要となり、旧 `--features` / `--schema` オプションは主推薦 CLI から削除しました。旧6軸方式の関数とテストは追加実験用に保持しています。
 
-basic の JSONL は1実行1行、`result_schema_version: v2` / `strategy: jev-choice-v1` です。input_prompt / input_profile（basic または full）/ provider / resolved model / recommendations（rank・anime_id・title・probability）/ 全候補の probabilities / confidence / usage / latency_ms / timestamp を記録します。metadata は candidate_ids、raw ファイル内容の SHA256、state と questions の入力 SHA256、requested model、prompt_version、シーズン・年・候補条件・top_k を保持します。v1 の6軸結果と区別して集計してください。価格設定は後続 Issue のため runtime_cost_usd は null、人間向けには「未計算」と表示します。API 障害、不正な確率分布、不正入力、データ欠損は stderr と終了コード1で返し、結果を出しません。
+Jev basic の JSONL は1実行1行、`result_schema_version: v2` / `strategy: jev-choice-v1` です。input_prompt / input_profile（basic または full）/ provider / resolved model / recommendations（rank・anime_id・title・probability）/ 全候補の probabilities / confidence / usage / latency_ms / timestamp を記録します。metadata は candidate_ids、raw ファイル内容の SHA256、state と questions の入力 SHA256、requested model、prompt_version、シーズン・年・候補条件・top_k を保持します。v1 の6軸結果と区別して集計してください。価格設定は後続 Issue のため runtime_cost_usd は null、人間向けには「未計算」と表示します。API 障害、不正な確率分布、不正入力、データ欠損は stderr と終了コード1で返し、結果を出しません。
 
 Choice 確率の合計検証は `bounded-cent-grid-v1` です。[公式 API](https://docs.typesafe.ai/api) は合計1を要求しますが、丸め精度や許容幅は公表していません。Issue #16 の実 API 調査（2026-10-01、jev-1.13.0、SUMMER 2026、basic、106候補、同一英語入力5回）では、百分率刻みの値に浮動小数点の微小誤差が付いた分布で、合計1と約0.99の一時的な応答差を観測しました。量子化・丸めの内部原因は断定しません。
 
@@ -131,7 +157,7 @@ full の JSONL も v2 / 1行1JSONです。既存の recommendations / probabilit
 - `first_stages`: group_index（0始まり）、candidate_ids、resolved model、probabilities / normalized_probabilities、confidence、usage、latency_ms、input_sha256 / prompt_version、確率検証情報、selected_ids（確率上位5件）。
 - `finalists`: final に渡した anime_id 昇順の ID 配列。`final_stage` は first と同じ call 記録（group_index を除く）。
 - `api_call_count`、`usage`（全 call の token usage 合計）、`api_latency_sum_ms`（各 call latency の単純合計）、`wall_clock_latency_ms`（first stage 開始から最終 Top 5 確定まで）。既存の `latency_ms` は wall-clock と同じ値です。
-- metadata の `prompt_version: recommend-staged-choice-v1` と `input_sha256`。入力 hash は strategy / grouping_version / group_max_candidates / group 順の first_stage_inputs hash / final_stage_input hash の JSON から計算し、各 call の hash は既存と同じ state / questions の JSON から計算します。
+- metadata の `prompt_version: recommend-staged-choice-v2` と `input_sha256`。入力 hash は strategy / grouping_version / group_max_candidates / group 順の first_stage_inputs hash / final_stage_input hash の JSON から計算し、各 call の hash は既存と同じ state / questions の JSON から計算します。
 
 human は最終 Top 5・final confidence・合計 usage・wall-clock の表示に留めます。コスト計算は引き続き未実装で null ですが、算出時は全 call の token usage 合計を使い、5 call だから5倍とは扱いません。full の複数 call を basic one-shot の主比較に混ぜず、Luna / Sol の API 呼び出し形態まで揃えることは目的にしません。
 
