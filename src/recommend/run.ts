@@ -37,6 +37,8 @@ export async function recommend(
 
   // Validate/filter the full candidate set before any API request.
   const candidates = selectCandidates(anime, options);
+  if (candidates.length > 255)
+    throw new Error('Jev Choice supports at most 255 candidates');
   const groups = assignGroups(candidates);
   const start = performance.now();
   const first = await Promise.all(

@@ -30,6 +30,8 @@ export async function recommendChoice(
   text(prompt);
   const profile = parseInputProfile(options.inputProfile ?? 'full');
   const candidates = selectCandidates(anime, options);
+  if (candidates.length > 255)
+    throw new Error('Jev Choice supports at most 255 candidates');
   const state = { mood: prompt };
   const questions: Record<string, ChoiceQuestion> = {
     recommend: {
@@ -148,7 +150,5 @@ export function selectCandidates(
     throw new Error(
       'No non-adult candidates for season/year; fetch raw data again',
     );
-  if (candidates.length > 255)
-    throw new Error('Jev Choice supports at most 255 candidates');
   return candidates;
 }
