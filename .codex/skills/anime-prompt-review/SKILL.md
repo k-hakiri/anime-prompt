@@ -1,16 +1,16 @@
 ---
 name: anime-prompt-review
-description: Use when independently reviewing an Anime Prompt branch or PR before creation or update, using a fresh context and read-only review.
+description: Use when independently reviewing an Anime Prompt branch or PR before creation or update, using an independent read-only reviewer, with a fresh initial context and continuity for re-review.
 ---
 
 # Anime Prompt 独立レビュー
 
-[開発 Skill](../anime-prompt-dev/SKILL.md) から依頼された、実装者とは別の **fresh context の read-only review agent** が使う。汎用的なレビュー方法は `superpowers:requesting-code-review` とその `code-reviewer.md` template を直接使う。この Skill は repo 固有の契約だけを追加し、Superpowers 本文はコピーしない。
+[開発 Skill](../anime-prompt-dev/SKILL.md) から依頼された、実装者とは別の **read-only review agent** が使う。初回は fresh context で独立性を確保し、再 review では原則として同じ reviewer / context を継続する。汎用的なレビュー方法は `superpowers:requesting-code-review` とその `code-reviewer.md` template を直接使う。この Skill は repo 固有の契約だけを追加し、Superpowers 本文はコピーしない。
 
 ## 入力と役割
 
 - 最初に [Review Package](references/review-package.md) の必須入力と対象 revision を確認する。不足を推測で埋めず `Cannot verify` に記す。
-- 実装者の会話履歴・セッションメモリ・「PASS のはず」という結論を渡さない。Package と repo / GitHub / [Notion 正本](https://app.notion.com/p/3eb4daebe6d481548d93c55b3fdf5cbe?pvs=204) を根拠にする。
+- 実装者の会話履歴・セッションメモリ・「PASS のはず」という結論を渡さない。再 review では reviewer 自身の前回 finding とその背景を保持する。Package と repo / GitHub / [Notion 正本](https://app.notion.com/p/3eb4daebe6d481548d93c55b3fdf5cbe?pvs=204) を根拠にする。
 - レビューは read-only。作業ツリー・index・HEAD・branch を変更せず、修正・commit・push・PR 作成・追加 subagent 起動を行わない。
 - 起動者は [reviewer 起動契約](references/reviewer-launch.md) に従い、起動前の Package に requested configuration を添える。起動後に reviewer **本体**の effective model / effort / read-only を照合し、確認記録を review 結果へ添える。不一致・未確認の review は無効であり、PASS を採用しない。仲介 agent の設定では代用しない。
 - 必要な Superpowers Skill / template、正本や差分を読めない場合も不足として返す。アプリや schema が未実装の文書 PR では、該当しない観点を未実装の欠陥にしない。
@@ -44,6 +44,6 @@ PR 前に存在しない当該 PR の CI は PR 作成後に確認する。CI �
 
 ## 指摘の引き継ぎ
 
-実装者は `superpowers:receiving-code-review` で指摘を技術的に検証する。正しい blocking は修正・verify 後、Package を更新して **別の fresh context の reviewer** に再判定を依頼する。判断に必要な `cannot verify` は repo / GitHub / Notion の根拠を補い、同様に再判定する。対象外事項・軽微な指摘を残す場合は影響と理由を PR に記録する。
+実装者は `superpowers:receiving-code-review` で指摘を技術的に検証する。正しい blocking は修正・verify 後、Package を更新して、原則として **同じ reviewer / context** に再判定を依頼し、前回 finding の解消と回帰の有無を確認する。大幅な設計変更、scope 変更、判断の不一致、または同じ reviewer / context を継続できない場合のみ、理由を記録して新しい fresh context でやり直す。判断に必要な `cannot verify` は repo / GitHub / Notion の根拠を補い、同様に再判定する。対象外事項・軽微な指摘を残す場合は影響と理由を PR に記録する。
 
-最終 PASS は reviewer が返す。初回後の修正・verify・再 review は最大3回。PASS しない、必要な根拠を補えない、独立 reviewer を起動できない場合は PR を作らず finding と検証結果をユーザーへ返す。review 後に差分が変われば verify と独立 review をやり直す。
+最終 PASS は reviewer が返す。初回後の修正・verify・再 review は最大3回。reviewer / context の変更で回数をリセットしない。PASS しない、必要な根拠を補えない、独立 reviewer を起動できない場合は PR を作らず finding と検証結果をユーザーへ返す。review 後に差分が変われば verify と独立 review をやり直す。

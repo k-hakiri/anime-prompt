@@ -91,8 +91,11 @@ format、lint、型検査、unit test、smoke test の失敗が verify の非0�
 一時的な変更で確認し、変更はすべて戻す。
 `git diff --check`、全差分と追跡ファイル、ignore の保護対象と公開ファイルを確認する。
 
-local verify 後に、固定 head を対象とする fresh context の独立 read-only review を行う。
-reviewer 本体の `gpt-6.1-sol` / `medium` / read-only の実効値を起動記録で確認する。
+local verify 後に、固定 head を対象とする独立 read-only review を行う。
+初回は実装者とは別の fresh context、修正後は原則として同じ reviewer / context で
+前回 finding の解消と回帰を確認する。大幅な設計変更・scope 変更・判断の不一致・
+context 継続不能の場合のみ fresh context でやり直し、最大3回の再 review 回数はリセットしない。
+reviewer 本体の `gpt-6.1-sol` / `medium` / read-only の実効値と context ID を各回の起動記録で確認する。
 blocking と判断に必要な cannot verify が残れば PR は作らない。
 Issue の実装依頼にはその範囲の commit / push / PR 作成・更新 / CI 確認までを含み、
 local verify と有効な独立 review の PASS 後は追加確認なしで進める。

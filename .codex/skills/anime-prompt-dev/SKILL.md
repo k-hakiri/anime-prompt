@@ -9,8 +9,8 @@ description: Use when implementing a GitHub Issue or preparing a pull request in
 
 ```text
 Issue確認 → branch作成 → 必要な仕様を読む → 実装 → local verify
-→ fresh contextの独立review
-→ blockingあり: 修正 → verify → 再review（最大3回）
+→ 初回はfresh contextの独立review
+→ blockingあり: 修正 → verify → 同じreviewer/contextで再review（最大3回）
 → PASS → push → PR作成・更新 → GitHub CI → 結果報告
 ```
 
@@ -35,15 +35,15 @@ Issue確認 → branch作成 → 必要な仕様を読む → 実装 → local v
 2. PR 作成前に、ローカル・CI 共通の `npm run verify` を実行する。format check / lint / typecheck / unit test / CLI smoke test のコマンド・終了コード・結果・未実行項目を記録する。文書・設定だけの変更でも省略しない。失敗は修正して再実行し、未実行・失敗を PASS と扱わない。`git diff --check`、文書リンク、`git check-ignore` による保護対象と公開ファイルの確認も行う。
 3. 公開 repo 向けに差分の全内容と追加ファイルを確認する。Secret、実取得 raw / feature data、benchmark results、個人メモがないことを確認する。ignore は既に追跡されたファイルには効かないため、`git ls-files` も確認する。Secret を含む出力は記録・共有せず、検出した場合は公開を止める。
 
-## 4. Fresh context の独立 review
+## 4. 独立 review と再 review
 
 1. [review Skill の入力契約](../anime-prompt-review/references/review-package.md) に従って Review Package を作る。原則として commit 済みの head を固定し、必須情報・該当する正本・検証結果と、reviewer 起動の requested configuration（model / effort / read-only 方針）を添える。起動後にしか分からない effective configuration は Package の完成条件にしない。未コミット変更の場合も基準 HEAD と全差分（未追跡ファイルを含む）を明示する。
-2. `superpowers:requesting-code-review` とその reviewer template を使い、実装者とは別の **fresh context の read-only review agent** に委譲する。会話履歴・実装者の結論を渡さず、Review Package と正本から判断させる。dev Skill 自身のセルフレビューで代用しない。reviewer は修正・commit・push・PR 作成・追加 subagent 起動を行わない。
-3. [repo review Skill](../anime-prompt-review/SKILL.md) を reviewer に読ませる。起動者は [reviewer 起動契約](../anime-prompt-review/references/reviewer-launch.md) に従い、reviewer 起動後に launcher が本体の effective configuration を確認し、Package の requested configuration（`gpt-6.1-sol` / `medium` / read-only）と照合する。不一致・未確認ならその review は無効とし、設定を確定して別の fresh context で再実行する。effective 値・確認方法・一致判定は review 結果と一緒に記録する。Orca の仲介 agent の設定や requested 値だけで保証しない。保証できない経路では明示設定の新規 `codex exec` を使う。Superpowers 本文を repo にコピーしない。
+2. `superpowers:requesting-code-review` とその reviewer template を使い、初回は実装者とは別の **fresh context の read-only review agent** に委譲する。会話履歴・実装者の結論を渡さず、Review Package と正本から判断させる。dev Skill 自身のセルフレビューで代用しない。reviewer は修正・commit・push・PR 作成・追加 subagent 起動を行わない。
+3. [repo review Skill](../anime-prompt-review/SKILL.md) を reviewer に読ませる。起動者は [reviewer 起動契約](../anime-prompt-review/references/reviewer-launch.md) に従い、reviewer 起動後に launcher が本体の effective configuration を確認し、Package の requested configuration（`gpt-6.1-sol` / `medium` / read-only）と照合する。不一致・未確認ならその review は無効とし、設定を確定して別の fresh context で再実行する。effective 値・確認方法・一致判定は review 結果と一緒に記録する。Orca の仲介 agent の設定や requested 値だけで保証しない。保証できない経路では明示設定の `codex exec` を使う。Superpowers 本文を repo にコピーしない。
 4. reviewer は `Strengths`、`Blocking findings`、`Cannot verify / Declined to judge`、`Verdict: PASS / BLOCKED` を返す。好みの refactor、Issue 外の改善、style 差だけを blocking にしない。
-5. 指摘は `superpowers:receiving-code-review` に従って技術的に検証する。正しい blocking は修正し、verify、Review Package 更新、別の fresh context の独立 review を行う。判断に必要な `cannot verify` は黙って捨てず、正本・repo・GitHub の根拠を補って再判定を依頼する。
-6. 初回 review 後の **修正・verify・再 review は最大3回**。3回で PASS しない、必要な情報を補えない、または独立 review を実施できない場合は PR を作らず停止する。finding、検証結果、必要な判断をユーザーへ返す。実装者が PASS を代行しない。
-7. launcher が requested / effective の一致を確認した有効な review に限り PASS を採用する。PASS は reviewer が返し、blocking finding が0件、かつ PR 前の判断に必要な `cannot verify` が解消済みの場合だけとする。当該 PR 作成後の CI は次の段階で確認する。review 後に差分を変更した場合は verify・独立 review を再実施する。
+5. 指摘は `superpowers:receiving-code-review` に従って技術的に検証する。正しい blocking は修正し、verify、Review Package 更新後、原則として同じ reviewer / context で再 review し、前回 finding の解消と回帰の有無を確認する。独立性は初回で担保し、再 review では継続性を優先する。大幅な設計変更、scope 変更、判断の不一致、または同じ reviewer / context を継続できない場合のみ、理由を記録して新しい fresh context でやり直す。判断に必要な `cannot verify` は黙って捨てず、正本・repo・GitHub の根拠を補って同じ reviewer / context に再判定を依頼する（上記の例外時は fresh context）。
+6. 初回 review 後の **修正・verify・再 review は最大3回**。reviewer / context の変更で回数をリセットしない。3回で PASS しない、必要な情報を補えない、または独立 review を実施できない場合は PR を作らず停止する。finding、検証結果、必要な判断をユーザーへ返す。実装者が PASS を代行しない。
+7. launcher が requested / effective の一致を確認した有効な review に限り PASS を採用する。PASS は reviewer が返し、blocking finding が0件、かつ PR 前の判断に必要な `cannot verify` が解消済みの場合だけとする。当該 PR 作成後の CI は次の段階で確認する。review 後に差分を変更した場合は verify・独立 review を再実施し、再 review の context 選択は第5項に従う。
 
 ## 5. PR・CI
 

@@ -18,7 +18,8 @@
 - format、lint、strict typecheck、unit test、CLI smoke test を実行する。
 - 配布用 build、API SDK、取得・特徴量生成・推薦ロジックを追加しない。
 - テストに Secret、実取得データ、外部 API 接続は必要ない。
-- PR 前に local verify と fresh context の独立 read-only review を必須とする。
+- PR 前に local verify と独立 read-only review を必須とする。
+- 初回は実装者とは別の fresh context、再 review は同じ reviewer / context で前回 finding の解消と回帰を確認する。大幅な設計変更・scope 変更・判断の不一致・context 継続不能の場合のみ fresh context でやり直し、最大3回の回数をリセットしない。
 - reviewer は repo 契約の `gpt-6.1-sol` / `medium` / read-only を使う。
 - Issue の範囲の commit / push / PR 作成・更新 / CI 確認は追加確認なしで進める。公開前の local verify・有効な独立 review PASS と、ユーザーの明示した操作制限を守る。
 - merge はユーザーから明示的に指示された場合のみ実行する。最新 head の CI 成功も必須とする。
@@ -78,7 +79,7 @@
 - [x] **Step 4: 各工程の失敗を一時変更で検証する。** 整形違反、unused variable、型不一致、unit assertion failure、smoke assertion failure を1つずつ注入し、各 `npm run verify` が非0終了することを記録する。毎回元に戻す。unit/smoke の各ディレクトリに一時 failing test を追加し、新規 test が検出されることも確認して削除する。
 - [x] **Step 5: clean install と最終 verify を実行する。** `npm ci`、`npm run verify`、`git diff --check`。Expected: 全コマンド終了コード0。全差分・追加ファイル・追跡対象・ignore と文書リンクを確認する。
 - [x] **Step 6: 検証済みの Task 2 と計画の完了状態を commit する。** 失敗注入の一時ファイルが残らないことを確認する。
-- [ ] **Step 7: 独立レビューを実施する。** Issue・正本の必要範囲・全差分・固定 revision・検証結果を repo 外の Review Package にまとめる。repo review Skill と Superpowers reviewer template を使い、fresh context の read-only reviewer を起動し、本体 header の model/effort/sandbox を照合する。blocking があれば repo dev Skill の最大3回の修正・verify・再レビューに従う。
+- [ ] **Step 7: 独立レビューを実施する。** Issue・正本の必要範囲・全差分・固定 revision・検証結果を repo 外の Review Package にまとめる。repo review Skill と Superpowers reviewer template を使い、初回は fresh context の read-only reviewer を起動し、各回で本体 header の model/effort/sandbox と context ID を照合する。blocking があれば、同じ reviewer / context を原則として repo dev Skill の最大3回の修正・verify・再レビューに従う。
 - [ ] **Step 8: レビュー済み差分を引き渡す。** PR 本文を repo 外に用意する。ユーザーの明示した操作制限がなければ、追加確認なしで push・PR 作成または既存 PR 更新を行い、当該 head の CI を確認する。merge の明示指示がなければ PR と CI の結果を報告して終了する。
 
 ## Review correction

@@ -47,12 +47,12 @@ node src/cli/main.ts --help
 
 ```text
 Issue → branch → 必要な仕様 → 実装 → local verify
-→ fresh contextの独立review → PASS → push → PR作成・更新 → GitHub CI → 結果報告
+→ 初回はfresh contextの独立review → PASS → push → PR作成・更新 → GitHub CI → 結果報告
 ```
 
 Issue の実装依頼には、その範囲に必要な commit / push / PR 作成・更新 / CI 確認までを含みます。local verify と有効な独立 review が PASS したら、push・PR 作成または更新・CI 確認まで追加の人間確認なしで進めます。review 対象を固定する local commit は [開発 Skill](.codex/skills/anime-prompt-dev/SKILL.md) に従い、ユーザーが明示した操作制限を優先します。
 
-文書・設定だけの変更でも、PR 前に `npm run verify` と公開差分・ignore・リンクの確認を行い、結果を独立 reviewer に渡します。blocking があれば修正・verify・再 review を最大3回行い、解消しなければ PR を作らず停止します。すべての PR で最新 head の CI 成功を必須とし、CI の未実行・pending・失敗を成功とは扱いません。**merge はユーザーから明示的に指示された場合のみ実行します。** 指示がなければ PR と CI の結果を報告して終了します。
+文書・設定だけの変更でも、PR 前に `npm run verify` と公開差分・ignore・リンクの確認を行い、結果を独立 reviewer に渡します。初回の独立 review は実装者とは別の fresh context で行います。blocking があれば原則として同じ reviewer / context で修正・verify・再 review を最大3回行い、解消しなければ PR を作らず停止します。大幅な設計変更・scope 変更・判断の不一致・context 継続不能の場合のみ fresh context でやり直し、回数はリセットしません。すべての PR で最新 head の CI 成功を必須とし、CI の未実行・pending・失敗を成功とは扱いません。**merge はユーザーから明示的に指示された場合のみ実行します。** 指示がなければ PR と CI の結果を報告して終了します。
 
 ## GitHub CIと人間による設定
 
