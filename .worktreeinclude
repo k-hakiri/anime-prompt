@@ -1,0 +1,6 @@
+# Local files copied into each new Orca worktree.
+.env
+data/raw/
+data/features/
+data/results/
+data/private/
