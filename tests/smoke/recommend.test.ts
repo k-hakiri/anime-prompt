@@ -65,6 +65,10 @@ test('recommend CLI supports explicit human/JSONL and actual stdin TTY with UI o
     assert.equal(record.recommendations[0].anime_id, 1);
     assert.equal(record.recommendations[0].probability, 1);
     assert.equal(record.input_profile, 'full');
+    assert.equal(record.strategy, 'jev-staged-choice-v1');
+    assert.equal(record.api_call_count, 2);
+    assert.equal(record.usage.input_tokens, 200);
+    assert.deepEqual(record.finalists, [1]);
     assert.equal(record.confidence, 0.9);
     assert.deepEqual(record.probabilities, { '1': 1 });
     assert.deepEqual(record.metadata.candidate_ids, [1]);
@@ -78,6 +82,8 @@ test('recommend CLI supports explicit human/JSONL and actual stdin TTY with UI o
     ]);
     assert.equal(basic.status, 0, basic.stderr);
     assert.equal(JSON.parse(basic.stdout).input_profile, 'basic');
+    assert.equal(JSON.parse(basic.stdout).strategy, 'jev-choice-v1');
+    assert.equal(JSON.parse(basic.stdout).usage.input_tokens, 100);
     const human = run(['--prompt', prompt]);
     assert.equal(human.status, 0);
     assert.match(human.stdout, /1\. Synthetic Journey/);
@@ -236,7 +242,10 @@ test('debug CLI diagnostics preserve stdout and exits while redacting reflected 
               .split('\n')
               .filter((line) => line.startsWith('Jev debug '))
               .map((line) => JSON.parse(line.slice(10)));
-            assert.equal(records.length, 2);
+            assert.equal(
+              records.length,
+              profile === 'full' && !failure ? 4 : 2,
+            );
             assert.equal(records[0].input_profile, profile);
             assert.equal(records[0].candidate_count, 1);
             assert.equal(records[0].tags_total, profile === 'full' ? 1 : 0);

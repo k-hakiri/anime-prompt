@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { normalizeAnime } from '../../src/anilist/normalize.ts';
 import { projectAnime } from '../../src/anime/profile.ts';
-import { recommend, renderHuman } from '../../src/recommend/run.ts';
+import { recommendChoice as recommend } from '../../src/recommend/choice.ts';
+import { renderHuman } from '../../src/recommend/run.ts';
 import type { JevEvaluator } from '../../src/providers/jev.ts';
 
 const options = { season: 'SUMMER' as const, year: 2026 };
