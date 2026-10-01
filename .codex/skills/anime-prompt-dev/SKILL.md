@@ -22,10 +22,11 @@ Issue確認 → branch作成 → 必要な仕様を読む → 実装 → local v
 
 ## 2. 実装・実験データ
 
-- AniList の取得・正規化、特徴量生成、推薦、YAML バッチの責務を分ける。小さい責務と単純なデータフローを保つ。
+- 主推薦経路は **raw → direct recommendation → Top 5** とし、AniList の取得・正規化、直接推薦、YAML バッチの責務を分ける。Jev は気分と作品情報を Choice へ直接渡し、probabilities から Top 5 を生成する。小さい責務と単純なデータフローを保つ。
+- 旧6軸方式の特徴量生成・feature schema・raw/features join・ローカル距離ランキング・前処理コスト分離は、その方式を扱う追加実験時のみの契約とする。旧コードは保持し、主推薦経路の依存にしない。
 - CLI / データ / benchmark に関わる変更では [公開契約と再現性](references/contracts.md) を読む。仕様を丸ごと repo へ複製しない。
 - Secret は環境変数から受け取る。ローカルの `.env` を読み出してログへ出したり、Credential を sample / fixture / PR に含めたりしない。`.env.example` はキー名と空値だけにする。
-- 実データはローカルまたは非公開の保存先で保持する。raw は `data/raw/`、features は `data/features/`、結果は `data/results/` に置く。仕様の実行例にある `results/` を使う場合も Git 管理対象外にする。別の出力先を追加するなら ignore も更新する。
+- 実データはローカルまたは非公開の保存先で保持する。raw は `data/raw/`、旧6軸方式の features は `data/features/`、結果は `data/results/` に置く。仕様の実行例にある `results/` を使う場合も Git 管理対象外にする。別の出力先を追加するなら ignore も更新する。
 - 公開 sample / fixture は `examples/` 等に置く最小の合成データにする。実取得データをそのまま縮小・改名して公開しない。個人の評価メモ・未公開分析結果もコミットしない。
 - 通常のテストは fixture / mock で再現可能にし、AniList / Jev / OpenAI を実呼び出ししない。本番 API key を CI に渡さない。
 
