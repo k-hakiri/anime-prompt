@@ -88,7 +88,7 @@ anime-recommend --season SUMMER --year 2026 --input-profile basic
 anime-recommend --season SUMMER --year 2026 --input-profile full
 ```
 
-既定は UTC の現在シーズン・年、human 出力、`full` profile です。取得済み `data/raw/{year}-{season}.jsonl` を使用します。`--raw PATH` / `--model ID` で入力とモデルを指定できます。`--input-profile basic|full` は特徴量生成と同じ項目集合を使い、basic は title / description / genres / format / episodes / duration、full は basic + tags（name / rank）/ source です。studio・人気・スコアは渡しません。モデル間比較では同じ raw と profile を使用してください。
+既定は UTC の現在シーズン・年、human 出力、`full` profile です。取得済み `data/raw/{year}-{season}.jsonl` を使用します。`--raw PATH` / `--model ID` で入力とモデルを指定できます。`--input-profile basic|full` は特徴量生成と同じ項目集合を使い、basic は title / description / genres / format / episodes / duration、full は basic + tags（name / rank）/ source です。studio・人気・スコアは渡しません。主比較は `basic` / one-shot に固定し、Jev / Luna / Sol で同じ raw・profile・自然文を使用してください。`full` / staged は豊富な metadata を使う追加実験として別集計します。CLI の既定 profile は互換性のため full のままです。
 
 `--prompt` がなければ stdin TTY で1行の入力を受け付け、案内は stderr に出します。パイプ入力はエラーになります。`--prompt` の文字列は空白を含めてそのまま保持します。
 
@@ -105,17 +105,35 @@ ANIME_PROMPT_DEBUG=1 anime-recommend --season SUMMER --year 2026 \
 
 full の情報量によっては Jev の token 上限に達します。bytes は比較用の集計であり token 数や固定の byte 上限ではありません。[公式モデル資料](https://docs.typesafe.ai/models) は、取得時点（2026-10-01）の制約として request 全体64k tokens、state と最長の質問の合計32k tokens を示しています。診断は入力項目・候補集合・tags を変更しません。
 
-主経路は自然文を state の mood、候補作品を anime_id キーの Choice criteria として Jev へ1回渡します。[Choice API](https://docs.typesafe.ai/api) の全候補の確率分布を降順に並べ、同点は anime_id 昇順、上位5件（候補が5件未満なら全件）を返します。human 表示は順位・タイトル・選択確率を中心とし、長文理由は生成しません。
+主比較の `basic` は自然文を state の mood、全候補作品を anime_id キーの Choice criteria として Jev へ1回渡します。[Choice API](https://docs.typesafe.ai/api) の全候補の確率分布を降順に並べ、同点は anime_id 昇順、上位5件（候補が5件未満なら全件）を返します。human 表示は順位・タイトル・選択確率を中心とし、長文理由は生成しません。
 
 候補は指定シーズン・年に一致し、`isAdult: false` と確認できる作品です。成人向け作品と成人向け状態が不明な作品は除外します。**旧 raw キャッシュは isAdult を持たないため、取得 CLI で再取得してください。** 人気・スコア・format・durationによる足切りはしません。候補0件・重複ID・Choice上限255件超過は API 呼び出し前に失敗し、候補を黙って切り捨てません。特徴量の事前生成は不要となり、旧 `--features` / `--schema` オプションは主推薦 CLI から削除しました。旧6軸方式の関数とテストは追加実験用に保持しています。
 
-JSONL は1実行1行、`result_schema_version: v2` / `strategy: jev-choice-v1` です。input_prompt / input_profile（basic または full）/ provider / resolved model / recommendations（rank・anime_id・title・probability）/ 全候補の probabilities / confidence / usage / latency_ms / timestamp を記録します。metadata は candidate_ids、raw ファイル内容の SHA256、state と questions の入力 SHA256、requested model、prompt_version、シーズン・年・候補条件・top_k を保持します。v1 の6軸結果と区別して集計してください。価格設定は後続 Issue のため runtime_cost_usd は null、人間向けには「未計算」と表示します。API 障害、不正な確率分布、不正入力、データ欠損は stderr と終了コード1で返し、結果を出しません。
+basic の JSONL は1実行1行、`result_schema_version: v2` / `strategy: jev-choice-v1` です。input_prompt / input_profile（basic または full）/ provider / resolved model / recommendations（rank・anime_id・title・probability）/ 全候補の probabilities / confidence / usage / latency_ms / timestamp を記録します。metadata は candidate_ids、raw ファイル内容の SHA256、state と questions の入力 SHA256、requested model、prompt_version、シーズン・年・候補条件・top_k を保持します。v1 の6軸結果と区別して集計してください。価格設定は後続 Issue のため runtime_cost_usd は null、人間向けには「未計算」と表示します。API 障害、不正な確率分布、不正入力、データ欠損は stderr と終了コード1で返し、結果を出しません。
 
 Choice 確率の合計検証は `bounded-cent-grid-v1` です。[公式 API](https://docs.typesafe.ai/api) は合計1を要求しますが、丸め精度や許容幅は公表していません。Issue #16 の実 API 調査（2026-10-01、jev-1.13.0、SUMMER 2026、basic、106候補、同一英語入力5回）では、百分率刻みの値に浮動小数点の微小誤差が付いた分布で、合計1と約0.99の一時的な応答差を観測しました。量子化・丸めの内部原因は断定しません。
 
 各確率は有限な0〜1、候補 ID 集合は完全一致、choice は最大確率の候補であることを引き続き要求します。合計の許容幅は従来の0.001を維持し、全確率が0.01刻みの場合だけ観測した1ポイントのずれに限って0.01とします。刻み判定には `abs(p * 100 - round(p * 100)) <= 1e-12`、合計比較には許容幅に `1e-12` を加えて浮動小数点誤差を扱います。合計0や許容範囲外は拒否し、エラーには `sum=実値` だけを追加します。百分率刻みだけで任意のずれを受け入れたり、自動 retry したりはしません。
 
 JSONL の既存 `probabilities` は API の元の全確率を保持します。追加する `normalized_probabilities` は各値を元の合計で割った全確率で、recommendations の probability と human 表示はこの補正後の値を使います。confidence は API の値を保持します。metadata に `probability_sum`（元の合計）、`probability_sum_tolerance`（適用した許容幅）、`probability_policy` を追加します。v2 への追加フィールドとして扱い、元の分布を分析する処理は引き続き probabilities を使ってください。観測応答は `data/results/` など Git 管理外に保存し、公開テストには数値形状を再現する合成 fixture だけを使います。
+
+### full の staged Choice (#23)
+
+`--input-profile full` は `strategy: jev-staged-choice-v1` の二段階推薦です。候補を anime_id 昇順に並べ、`ceil(候補数 / 27)` 個の group に round-robin で配分します。106候補なら27 / 27 / 26 / 26となります。全 group の Choice を `Promise.all` で並列開始し、各 group の確率上位5件（5件未満なら全件）を残します。全 group が成功した後、その finalist 全件へ final Choice を1回実行し、最終確率から Top 5 を返します。同点は各段階とも anime_id 昇順です。finalist の入力順も anime_id 昇順に固定します。
+
+first / final のいずれも同じ full profile を使い、description・tags・tag rank・source を削りません。人気・スコアで候補を削らず、prompt によって group を変更しません。group の HTTP / token 超過 / 不正応答は全体を失敗させ、partial finalist で final を実行せず、stdout に結果を出しません。一般的な retry・自動再分割はしません。失敗時、開始済みのほかの group request は完了し得ます。basic と同様、全候補255件までを受け付けます。
+
+27件は固定 group 数ではなく MVP の実測に基づく group 件数上限です。2026-10-01、jev-1.13.0、SUMMER 2026 の106候補・full で、4並列 group + final の実API成功を確認しました。各 group の入力 usage は最大12,398 tokens、20 finalist の final は11,211 tokensでした。この観測は32k制約への余裕を確認する根拠ですが、将来の作品情報や長い mood の token 上限を保証しません。tokenizer や自動最適化は導入せず、上限に当たれば情報を削らず終了コード1で失敗します。結果・raw は Git 管理外に保存し、CI / unit / smoke は mock のみを使います。
+
+full の JSONL も v2 / 1行1JSONです。既存の recommendations / probabilities / normalized_probabilities / confidence は **final-stage の分布**です。metadata.candidate_ids は元の全候補、raw_sha256 は元の raw ファイル全体を示します。次を追加します。
+
+- `group_count`、metadata の `grouping_version: anime-id-round-robin-v1` / `group_max_candidates` / `group_assignment`（group 順の candidate_ids 配列）。
+- `first_stages`: group_index（0始まり）、candidate_ids、resolved model、probabilities / normalized_probabilities、confidence、usage、latency_ms、input_sha256 / prompt_version、確率検証情報、selected_ids（確率上位5件）。
+- `finalists`: final に渡した anime_id 昇順の ID 配列。`final_stage` は first と同じ call 記録（group_index を除く）。
+- `api_call_count`、`usage`（全 call の token usage 合計）、`api_latency_sum_ms`（各 call latency の単純合計）、`wall_clock_latency_ms`（first stage 開始から最終 Top 5 確定まで）。既存の `latency_ms` は wall-clock と同じ値です。
+- metadata の `prompt_version: recommend-staged-choice-v1` と `input_sha256`。入力 hash は strategy / grouping_version / group_max_candidates / group 順の first_stage_inputs hash / final_stage_input hash の JSON から計算し、各 call の hash は既存と同じ state / questions の JSON から計算します。
+
+human は最終 Top 5・final confidence・合計 usage・wall-clock の表示に留めます。コスト計算は引き続き未実装で null ですが、算出時は全 call の token usage 合計を使い、5 call だから5倍とは扱いません。full の複数 call を basic one-shot の主比較に混ぜず、Luna / Sol の API 呼び出し形態まで揃えることは目的にしません。
 
 テストは API を呼ばず、unit と子プロセス smoke で確認します。実 stdin TTY を作る smoke test のため Python 3 も使用します（GitHub の Ubuntu runner に同梱）。
 
