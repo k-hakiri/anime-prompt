@@ -5,8 +5,8 @@ export const ANILIST_ENDPOINT = 'https://graphql.anilist.co';
 const QUERY = `query ($page: Int!, $season: MediaSeason!, $year: Int!) {
   Page(page: $page, perPage: 50) {
     pageInfo { currentPage hasNextPage }
-    media(type: ANIME, season: $season, seasonYear: $year, sort: ID) {
-      id title { native romaji english } description(asHtml: false)
+    media(type: ANIME, season: $season, seasonYear: $year, isAdult: false, sort: ID) {
+      id isAdult title { native romaji english } description(asHtml: false)
       genres tags { name rank } episodes duration format source season seasonYear
       studios(isMain: true) { nodes { name } }
     }

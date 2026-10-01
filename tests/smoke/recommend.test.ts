@@ -5,40 +5,40 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { normalizeAnime } from '../../src/anilist/normalize.ts';
-import { AXES, loadSchema } from '../../src/features/schema.ts';
-import { buildFeatures } from '../../src/features/build.ts';
 
 test('recommend CLI supports explicit human/JSONL and actual stdin TTY with UI on stderr', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'anime-recommend-'));
   try {
-    const schema = await loadSchema();
     const anime = [
-      normalizeAnime({ id: 1, title: { native: 'Synthetic Journey' } }),
-    ];
-    const features = [
-      await buildFeatures(anime[0]!, schema, 'full', async () => ({
-        model: 'jev-1.13.0',
-        answers: Object.fromEntries(
-          AXES.map((axis) => [
-            axis,
-            { type: 'score', score: 2.4, confidence: 0.9 },
-          ]),
-        ),
-        usage: { input_tokens: 100, output_tokens: 12 },
-      })),
+      normalizeAnime({
+        id: 1,
+        title: { native: 'Synthetic Journey' },
+        isAdult: false,
+        season: 'SUMMER',
+        seasonYear: 2026,
+      }),
+      normalizeAnime({
+        id: 2,
+        isAdult: true,
+        season: 'SUMMER',
+        seasonYear: 2026,
+      }),
     ];
     const rawPath = join(directory, 'raw.jsonl');
-    const featuresPath = join(directory, 'features.jsonl');
-    writeFileSync(rawPath, JSON.stringify(anime[0]) + '\n');
-    writeFileSync(featuresPath, JSON.stringify(features[0]) + '\n');
+    writeFileSync(
+      rawPath,
+      anime.map((row) => JSON.stringify(row)).join('\n') + '\n',
+    );
     const args = [
       '--import',
       './tests/fixtures/jev-fetch.ts',
       'src/cli/recommend.ts',
       '--raw',
       rawPath,
-      '--features',
-      featuresPath,
+      '--season',
+      'SUMMER',
+      '--year',
+      '2026',
     ];
     const env = {
       ...process.env,
@@ -61,17 +61,26 @@ test('recommend CLI supports explicit human/JSONL and actual stdin TTY with UI o
     assert.equal(jsonl.stdout.trim().split('\n').length, 1);
     const record = JSON.parse(jsonl.stdout);
     assert.equal(record.input_prompt, prompt);
-    assert.match(record.recommendations[0].reason, /healing:/);
-    assert.match(record.recommendations[0].reason, /cognitive_load:/);
     assert.equal(record.recommendations[0].anime_id, 1);
-    assert.equal(record.input_profile.profile_schema_version, 'v1');
+    assert.equal(record.recommendations[0].probability, 1);
+    assert.equal(record.input_profile, 'full');
+    assert.equal(record.confidence, 0.9);
+    assert.deepEqual(record.probabilities, { '1': 1 });
+    assert.deepEqual(record.metadata.candidate_ids, [1]);
+    const basic = run([
+      '--prompt',
+      prompt,
+      '--format',
+      'jsonl',
+      '--input-profile',
+      'basic',
+    ]);
+    assert.equal(basic.status, 0, basic.stderr);
+    assert.equal(JSON.parse(basic.stdout).input_profile, 'basic');
     const human = run(['--prompt', prompt]);
     assert.equal(human.status, 0);
     assert.match(human.stdout, /1\. Synthetic Journey/);
-    assert.match(human.stdout, /癒やし度:/);
-    assert.match(human.stdout, /頭を使う度合い:/);
-    assert.match(human.stdout, /シリアス度:/);
-    assert.doesNotMatch(human.stdout, /healing:|cognitive_load:|seriousness:/);
+    assert.match(human.stdout, /100\.0%/);
     assert.match(human.stdout, /time:/);
     assert.equal(human.stderr, '');
     for (const [extra, failure] of [
@@ -79,7 +88,9 @@ test('recommend CLI supports explicit human/JSONL and actual stdin TTY with UI o
       [['--prompt', '   '], ''],
       [['--prompt', prompt, '--format', 'invalid'], ''],
       [['--prompt', prompt], 'http'],
-      [['--prompt', prompt], 'score'],
+      [['--prompt', prompt], 'choice'],
+      [['--prompt', prompt, '--input-profile', 'invalid'], ''],
+      [['--prompt', prompt, '--season', 'FALL'], ''],
       [['--prompt', prompt, '--raw', join(directory, 'missing')], ''],
     ] as [string[], string][]) {
       const result = run(extra, failure);
@@ -112,7 +123,7 @@ test('recommend CLI supports explicit human/JSONL and actual stdin TTY with UI o
       JSON.parse(interactive.stdout).input_prompt,
       'Synthetic travel mood',
     );
-    writeFileSync(featuresPath, '{}\n');
+    writeFileSync(rawPath, '{}\n');
     const malformed = run(['--prompt', prompt]);
     assert.equal(malformed.status, 1);
     assert.equal(malformed.stdout, '');

@@ -30,6 +30,7 @@ test('fetch CLI emits one normalized JSON row and no diagnostic on success', () 
   assert.equal(rows.length, 1);
   assert.equal(rows[0].anime_id, 1);
   assert.equal(rows[0].studio, null);
+  assert.equal(rows[0].isAdult, false);
 });
 test('fetch invalid arguments and API failures emit stderr only', () => {
   for (const args of [

@@ -6,7 +6,7 @@
 
 ## 現在の状態
 
-TypeScript の取得・Jev特徴量生成・推薦 CLI と、ローカル・GitHub CI 共通の品質ゲートを提供します。[Issue #7](https://github.com/k-hakiri/anime-prompt/issues/7)・[#8](https://github.com/k-hakiri/anime-prompt/issues/8)・[#9](https://github.com/k-hakiri/anime-prompt/issues/9) の範囲です。Luna / Sol 直接推薦・YAML batch・benchmark 集計は後続 Issue です。独立 review は [review Skill](.codex/skills/anime-prompt-review/SKILL.md) に従い、reviewer を `gpt-6.1-sol` / `medium` で起動します。
+TypeScript の取得・Jev特徴量生成・推薦 CLI と、ローカル・GitHub CI 共通の品質ゲートを提供します。[Issue #7](https://github.com/k-hakiri/anime-prompt/issues/7)・[#8](https://github.com/k-hakiri/anime-prompt/issues/8)・[#9](https://github.com/k-hakiri/anime-prompt/issues/9)・[#14](https://github.com/k-hakiri/anime-prompt/issues/14) の範囲です。Luna / Sol 直接推薦・YAML batch・benchmark 集計は後続 Issue です。独立 review は [review Skill](.codex/skills/anime-prompt-review/SKILL.md) に従い、reviewer を `gpt-6.1-sol` / `medium` で起動します。
 
 ## セットアップと検証
 
@@ -56,9 +56,9 @@ anime-fetch-anilist --season FALL --year 2026 > data/raw/2026-fall.jsonl
 anime-fetch-anilist --season FALL --year 2026 | sed -n '1,3p'
 ```
 
-取得は [AniList GraphQL API](https://docs.anilist.co/guide/graphql/queries/media) のシーズン・年フィルタを使い、全ページ取得後に1作品1行の JSONL を出します。HTTP/GraphQL/データ不正は stderr と終了コード1で知らせます。自動 retry は行いません。AI API は呼びません。
+取得は [AniList GraphQL API](https://docs.anilist.co/guide/graphql/queries/media) のシーズン・年と `isAdult: false` フィルタを使い、全ページ取得後に1作品1行の JSONL を出します。HTTP/GraphQL/データ不正は stderr と終了コード1で知らせます。自動 retry は行いません。AI API は呼びません。
 
-正規化契約は [Anime schema](src/anime/schema.ts) に定義します。`anime_id` は AniList の正整数 ID、`title` は native → romaji → english → `Anime ID` の順です。`description`、`episodes`、`duration`、`format`、原作種別 `source`、`studio`、`season`、`year` の欠損は null、`genres` / `tags` は空配列です。tags は name / rank (0–100 または null) を保持します。`data_source: anilist` と `source_url` で取得元を区別します。description は API の `asHtml: false` で取得します。
+正規化契約は [Anime schema](src/anime/schema.ts) に定義します。`anime_id` は AniList の正整数 ID、`title` は native → romaji → english → `Anime ID` の順です。`description`、`episodes`、`duration`、`format`、原作種別 `source`、`studio`、`season`、`year` の欠損は null、`genres` / `tags` は空配列です。`isAdult` は boolean（旧キャッシュで未取得の場合は null）を保持します。tags は name / rank (0–100 または null) を保持します。`data_source: anilist` と `source_url` で取得元を区別します。description は API の `asHtml: false` で取得します。
 
 ## Jev特徴量生成 (#8)
 
@@ -73,25 +73,30 @@ node src/cli/build_features.ts --schema features/schema/v1.yaml --input-profile 
 
 basic は title / description / genres / format / episodes / duration、full はそれに tags / rank / source を追加します。studio や人気指標は渡しません。Jev の [公式 HTTP API](https://docs.typesafe.ai/api) を使う adapter を domain から分離しています。API key は環境変数だけから取得し、API の error body はログへ出しません。自動 retry はなく、失敗時は stderr と終了コード1を返します。逐次処理なので途中で失敗した場合、stdout に先行する有効な行が残ります。保存時は終了コードを確認してください。
 
-[FeatureRecord / MoodProfile](src/features/schema.ts) は作品特徴量とユーザー条件の別 schema です。作品側には anime_id / feature_schema_version / input_profile / provider / resolved・requested model / prompt_version / schema・入力の SHA256 / usage / latency_ms / generated_at を残し、作品メタデータは複製しません。MoodProfile は original_prompt をそのまま保持し、同じ6軸・schema version・hash で比較できます。推薦時の自然文変換は次の推薦 CLI で実行します。計測用の usage と時間は保存しますが、単価・コスト集計は後続の benchmark Issue で扱います。
+[FeatureRecord / MoodProfile](src/features/schema.ts) は作品特徴量とユーザー条件の別 schema です。作品側には anime_id / feature_schema_version / input_profile / provider / resolved・requested model / prompt_version / schema・入力の SHA256 / usage / latency_ms / generated_at を残し、作品メタデータは複製しません。MoodProfile は original_prompt をそのまま保持し、同じ6軸・schema version・hash で比較できます。6軸方式は追加実験用として [legacy.ts](src/recommend/legacy.ts) と [rank.ts](src/recommend/rank.ts) に残します。主推薦 CLI は特徴量ファイルや MoodProfile を使用しません。計測用の usage と時間は保存しますが、単価・コスト集計は後続の benchmark Issue で扱います。
 
-## 気分から推薦 (#9)
+## 気分から直接推薦 (#14)
 
 ```sh
-# 先に取得と特徴量生成を実行し、TYPESAFE_API_KEY を環境変数に設定
-node src/cli/recommend.ts --season FALL --year 2026
-node src/cli/recommend.ts --season FALL --year 2026 \
+# 先に raw を取得し、TYPESAFE_API_KEY を環境変数に設定
+node src/cli/recommend.ts --season SUMMER --year 2026
+node src/cli/recommend.ts --season SUMMER --year 2026 \
   --prompt "仕事帰りで疲れた。気楽に旅や世界観を楽しみたい" --format jsonl \
   > data/results/after-work.jsonl
 # npm link 後は anime-recommend でも実行可能
-anime-recommend
+anime-recommend --season SUMMER --year 2026 --input-profile basic
+anime-recommend --season SUMMER --year 2026 --input-profile full
 ```
 
-既定は UTC の現在シーズン・年、human 出力です。取得済み `data/raw/{year}-{season}.jsonl` と生成済み `data/features/{year}-{season}-full-{schemaVersion}.jsonl` を使用します。`--raw PATH` / `--features PATH` / `--schema PATH` / `--model ID` で再現条件を指定できます。basic で生成したファイルは `--features` で指定してください。`--prompt` がなければ stdin TTY で1行の入力を受け付け、案内は stderr に出します。パイプ入力はエラーになります。`--prompt` の文字列は空白を含めてそのまま保持します。
+既定は UTC の現在シーズン・年、human 出力、`full` profile です。取得済み `data/raw/{year}-{season}.jsonl` を使用します。`--raw PATH` / `--model ID` で入力とモデルを指定できます。`--input-profile basic|full` は特徴量生成と同じ項目集合を使い、basic は title / description / genres / format / episodes / duration、full は basic + tags（name / rank）/ source です。studio・人気・スコアは渡しません。モデル間比較では同じ raw と profile を使用してください。
 
-Jev で気分を同じ6軸へ1回で変換し、等重みのユークリッド距離（6軸の二乗差の平均の平方根）で候補全件を順位付けします。confidence はランキングへ掛けません。同点は anime_id 昇順、上位5件（候補が5件未満なら全件）を返します。推薦理由は希望と作品の値が近い3軸から計算します。ID集合・重複・schema version/hash・生成条件・作品入力 hash の不一致は API 呼び出し前に失敗します。
+`--prompt` がなければ stdin TTY で1行の入力を受け付け、案内は stderr に出します。パイプ入力はエラーになります。`--prompt` の文字列は空白を含めてそのまま保持します。
 
-JSONL は1実行1行で、input_prompt / input_profile（元文・version・6軸）/ provider / resolved model / strategy / 順位・anime_id・title・score・reason を含む recommendations / usage / latency_ms / timestamp を記録します。metadata は candidate_ids、raw・features の hash、schema・prompt・requested model・生成条件・等重み・top_k を保持します。価格設定は後続 Issue のため runtime_cost_usd は null、人間向けには「未計算」と表示します。API 障害、不正入力、データ欠損は stderr と終了コード1で返し、結果を出しません。
+主経路は自然文を state の mood、候補作品を anime_id キーの Choice criteria として Jev へ1回渡します。[Choice API](https://docs.typesafe.ai/api) の全候補の確率分布を降順に並べ、同点は anime_id 昇順、上位5件（候補が5件未満なら全件）を返します。human 表示は順位・タイトル・選択確率を中心とし、長文理由は生成しません。
+
+候補は指定シーズン・年に一致し、`isAdult: false` と確認できる作品です。成人向け作品と成人向け状態が不明な作品は除外します。**旧 raw キャッシュは isAdult を持たないため、取得 CLI で再取得してください。** 人気・スコア・format・durationによる足切りはしません。候補0件・重複ID・Choice上限255件超過は API 呼び出し前に失敗し、候補を黙って切り捨てません。特徴量の事前生成は不要となり、旧 `--features` / `--schema` オプションは主推薦 CLI から削除しました。旧6軸方式の関数とテストは追加実験用に保持しています。
+
+JSONL は1実行1行、`result_schema_version: v2` / `strategy: jev-choice-v1` です。input_prompt / input_profile（basic または full）/ provider / resolved model / recommendations（rank・anime_id・title・probability）/ 全候補の probabilities / confidence / usage / latency_ms / timestamp を記録します。metadata は candidate_ids、raw ファイル内容の SHA256、state と questions の入力 SHA256、requested model、prompt_version、シーズン・年・候補条件・top_k を保持します。v1 の6軸結果と区別して集計してください。価格設定は後続 Issue のため runtime_cost_usd は null、人間向けには「未計算」と表示します。API 障害、不正な確率分布、不正入力、データ欠損は stderr と終了コード1で返し、結果を出しません。
 
 テストは API を呼ばず、unit と子プロセス smoke で確認します。実 stdin TTY を作る smoke test のため Python 3 も使用します（GitHub の Ubuntu runner に同梱）。
 

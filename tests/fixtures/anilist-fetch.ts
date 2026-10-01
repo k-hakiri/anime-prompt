@@ -9,6 +9,7 @@ globalThis.fetch = async () =>
             media: [
               {
                 id: 1,
+                isAdult: false,
                 title: { native: '架空の旅' },
                 season: 'FALL',
                 seasonYear: 2026,
