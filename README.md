@@ -6,7 +6,40 @@
 
 ## 現在の状態
 
-開発ルールと公開 repo の初期基盤を整備する段階です。CLI 本体は未実装で、実装言語・依存管理・verify 入口・GitHub CI は [Issue #4](https://github.com/k-hakiri/anime-prompt/issues/4) で決定します。独立 review は [review Skill](.codex/skills/anime-prompt-review/SKILL.md) に従います。Review Package・判定条件と、reviewer 本体を `gpt-6.1-sol` / `medium` で起動する方法を定めています。
+TypeScript の最小 CLI と、ローカル・GitHub CI 共通の品質ゲートを整備しています。取得・特徴量生成・推薦の本体は [Issue #7](https://github.com/k-hakiri/anime-prompt/issues/7)・[#8](https://github.com/k-hakiri/anime-prompt/issues/8)・[#9](https://github.com/k-hakiri/anime-prompt/issues/9) で実装します。独立 review は [review Skill](.codex/skills/anime-prompt-review/SKILL.md) に従います。Review Package・判定条件と、reviewer 本体を `gpt-6.1-sol` / `medium` で起動する方法を定めています。
+
+## セットアップと検証
+
+MVP のツールチェーンは **TypeScript・Node.js 24.21.0・npm 11.19.0** です。JSON を扱う CLI の契約を型検査でき、既存の Node.js 環境を活用できるため選びました。Node.js の native TypeScript 実行と標準 test runner を使い、配布用 build や追加 test framework は導入していません。
+
+`.node-version` の Node.js を用意してください。たとえば対応する version manager を使う場合は次のように切り替えます。npm はこの Node.js の配布物に含まれます。
+
+```sh
+nvm install "$(cat .node-version)"
+nvm use "$(cat .node-version)"
+node --version  # v24.21.0
+npm --version   # 11.19.0
+npm ci
+npm run verify
+```
+
+依存は `package-lock.json` に固定します。`.npmrc` の `engine-strict` により、Node.js・npm のバージョン不一致は `npm ci` で失敗します。`npm run verify` は以下を順に実行し、いずれかが失敗すると非0終了します。
+
+- format check: Prettier（コード・設定・文書）
+- lint: ESLint / typescript-eslint
+- typecheck: TypeScript strict / `tsc --noEmit`
+- unit test: 引数判定
+- CLI smoke test: 実プロセスの stdout・stderr・終了コード
+
+整形を修正する場合は `npm run format` を使います。テストは `tests/unit/` と `tests/smoke/` の `**/*.test.ts` を対象とし、追加テストも同じ入口で実行します。各テスト群で対象ファイルが0件なら失敗します。Secret・実取得データ・AniList/Jev/OpenAI への実リクエストは不要です。
+
+最小 CLI の起動確認は次のコマンドで行えます。
+
+```sh
+node src/cli/main.ts --help
+```
+
+現時点ではヘルプのみを提供します。引数なしや不正な引数は stdout に結果を出さず、stderr に診断を出して終了コード2で終了します。本体の3つの CLI は後続 Issue で追加します。
 
 ## 開発
 
@@ -14,14 +47,25 @@
 
 ```text
 Issue → branch → 必要な仕様 → 実装 → local verify
-→ fresh contextの独立review → PASS → PR → GitHub CI
+→ 初回はfresh contextの独立review → PASS → push → PR作成・更新 → GitHub CI → 結果報告
 ```
 
-blocking があれば修正・verify・再 review を最大3回行い、解消しなければ PR を作らず停止します。CI 成功前に merge しません。ただし、CI 未整備の bootstrap 期間にある Issue #2・#3 の初期整備 PR に限り、CI / status checks が存在しないことと例外の適用を PR 本文へ明記し、local verify と fresh context の独立 review が PASS して blocking と判断に必要な `cannot verify` がなければ merge 可能です。詳細は [dev Skill の bootstrap 条件](.codex/skills/anime-prompt-dev/SKILL.md#bootstrap-期間の-merge) を参照してください。
+Issue の実装依頼には、その範囲に必要な commit / push / PR 作成・更新 / CI 確認までを含みます。local verify と有効な独立 review が PASS したら、push・PR 作成または更新・CI 確認まで追加の人間確認なしで進めます。review 対象を固定する local commit は [開発 Skill](.codex/skills/anime-prompt-dev/SKILL.md) に従い、ユーザーが明示した操作制限を優先します。
 
-Issue #4 自身は追加した CI が当該 PR の最新 head 上で成功してから merge します。#4 で CI を導入した後は AGENTS.md・dev Skill・README の例外記述を削除し、以後は CI 成功を必須にします。CI の未実行・pending・失敗は例外の対象になりません。merge の実行にはセッションの許可が必要です。
+文書・設定だけの変更でも、PR 前に `npm run verify` と公開差分・ignore・リンクの確認を行い、結果を独立 reviewer に渡します。初回の独立 review は実装者とは別の fresh context で行います。blocking があれば原則として同じ reviewer / context で修正・verify・再 review を最大3回行い、解消しなければ PR を作らず停止します。大幅な設計変更・scope 変更・判断の不一致・context 継続不能の場合のみ fresh context でやり直し、回数はリセットしません。すべての PR で最新 head の CI 成功を必須とし、CI の未実行・pending・失敗を成功とは扱いません。**merge はユーザーから明示的に指示された場合のみ実行します。** 指示がなければ PR と CI の結果を報告して終了します。
 
-verify 入口が整うまで、文書・設定のみの変更は `git diff --check`、リンクと全変更内容の確認、`git check-ignore` による ignore の確認を行い、コマンドと結果を独立 reviewer に渡します。アプリのテストや CI が成功したとは扱いません。整備後は README・dev Skill・CI で共通の verify 入口を使います。
+## GitHub CIと人間による設定
+
+[CI workflow](.github/workflows/ci.yml) は `pull_request` で動き、固定した Node.js と `npm ci` の後、ローカルと同じ `npm run verify` を実行します。権限は `contents: read` のみで、API Secret は渡しません。同一 PR の古い run はキャンセルし、job の実行時間は10分に制限します。
+
+CI を merge の必須条件にする GitHub 設定は、管理者が別途行います。
+
+1. PR の `verify` check が実行され、成功したことを確認します。
+2. GitHub の Settings → Branches の Branch Protection、または Settings → Rules → Rulesets で `main` を対象とするルールを設定します。
+3. PR と status checks を必須にし、required status check に `verify`（GitHub Actions）を指定します。
+4. 失敗・pending の check で merge が許可されないことを確認します。設定を bypass できる権限の運用も管理者が決定します。
+
+workflow を追加しただけでは Branch Protection の設定は変更されません。
 
 ## ローカル設定と公開データ
 

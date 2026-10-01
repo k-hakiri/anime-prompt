@@ -1,0 +1,4 @@
+package-lock.json
+.superpowers/
+*.swp
+*.swo

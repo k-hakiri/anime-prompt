@@ -9,9 +9,9 @@ description: Use when implementing a GitHub Issue or preparing a pull request in
 
 ```text
 Issue確認 → branch作成 → 必要な仕様を読む → 実装 → local verify
-→ fresh contextの独立review
-→ blockingあり: 修正 → verify → 再review（最大3回）
-→ PASS → PR作成 → GitHub CI
+→ 初回はfresh contextの独立review
+→ blockingあり: 修正 → verify → 同じreviewer/contextで再review（最大3回）
+→ PASS → push → PR作成・更新 → GitHub CI → 結果報告
 ```
 
 ## 1. Issue・branch・仕様
@@ -31,23 +31,23 @@ Issue確認 → branch作成 → 必要な仕様を読む → 実装 → local v
 
 ## 3. Local verify
 
-1. Acceptance Criteria を一つずつ確認する。[README](../../../README.md) の verify 入口を実行し、コマンド・終了コード・結果・未実行項目を記録する。失敗は修正して再実行する。
-2. verify 入口・ツールチェーン・CI は [Issue #4](https://github.com/k-hakiri/anime-prompt/issues/4) で整備する。それまでは文書・設定だけの変更に限り、`git diff --check`、全変更ファイルとリンクの確認、`git check-ignore` による保護対象と公開ファイルの確認を local verify として記録する。アプリの品質ゲートを実行済みと扱わない。コード変更に必要な verify が未整備なら PR 前に停止する。
+1. Acceptance Criteria を一つずつ確認する。[README](../../../README.md#セットアップと検証) に従い、固定した Node.js と `npm ci` で環境を準備する。
+2. PR 作成前に、ローカル・CI 共通の `npm run verify` を実行する。format check / lint / typecheck / unit test / CLI smoke test のコマンド・終了コード・結果・未実行項目を記録する。文書・設定だけの変更でも省略しない。失敗は修正して再実行し、未実行・失敗を PASS と扱わない。`git diff --check`、文書リンク、`git check-ignore` による保護対象と公開ファイルの確認も行う。
 3. 公開 repo 向けに差分の全内容と追加ファイルを確認する。Secret、実取得 raw / feature data、benchmark results、個人メモがないことを確認する。ignore は既に追跡されたファイルには効かないため、`git ls-files` も確認する。Secret を含む出力は記録・共有せず、検出した場合は公開を止める。
 
-## 4. Fresh context の独立 review
+## 4. 独立 review と再 review
 
 1. [review Skill の入力契約](../anime-prompt-review/references/review-package.md) に従って Review Package を作る。原則として commit 済みの head を固定し、必須情報・該当する正本・検証結果と、reviewer 起動の requested configuration（model / effort / read-only 方針）を添える。起動後にしか分からない effective configuration は Package の完成条件にしない。未コミット変更の場合も基準 HEAD と全差分（未追跡ファイルを含む）を明示する。
-2. `superpowers:requesting-code-review` とその reviewer template を使い、実装者とは別の **fresh context の read-only review agent** に委譲する。会話履歴・実装者の結論を渡さず、Review Package と正本から判断させる。dev Skill 自身のセルフレビューで代用しない。reviewer は修正・commit・push・PR 作成・追加 subagent 起動を行わない。
-3. [repo review Skill](../anime-prompt-review/SKILL.md) を reviewer に読ませる。起動者は [reviewer 起動契約](../anime-prompt-review/references/reviewer-launch.md) に従い、reviewer 起動後に launcher が本体の effective configuration を確認し、Package の requested configuration（`gpt-6.1-sol` / `medium` / read-only）と照合する。不一致・未確認ならその review は無効とし、設定を確定して別の fresh context で再実行する。effective 値・確認方法・一致判定は review 結果と一緒に記録する。Orca の仲介 agent の設定や requested 値だけで保証しない。保証できない経路では明示設定の新規 `codex exec` を使う。Superpowers 本文を repo にコピーしない。
+2. `superpowers:requesting-code-review` とその reviewer template を使い、初回は実装者とは別の **fresh context の read-only review agent** に委譲する。会話履歴・実装者の結論を渡さず、Review Package と正本から判断させる。dev Skill 自身のセルフレビューで代用しない。reviewer は修正・commit・push・PR 作成・追加 subagent 起動を行わない。
+3. [repo review Skill](../anime-prompt-review/SKILL.md) を reviewer に読ませる。起動者は [reviewer 起動契約](../anime-prompt-review/references/reviewer-launch.md) に従い、reviewer 起動後に launcher が本体の effective configuration を確認し、Package の requested configuration（`gpt-6.1-sol` / `medium` / read-only）と照合する。不一致・未確認ならその review は無効とし、設定を確定して再実行する。初回は実装者とは別の fresh context とし、再 review の context 選択は第5項に従う。設定の修復後に同じ reviewer / context を継続できる場合は継続する。effective 値・確認方法・一致判定は review 結果と一緒に記録する。Orca の仲介 agent の設定や requested 値だけで保証しない。保証できない経路では明示設定の `codex exec` を使う。Superpowers 本文を repo にコピーしない。
 4. reviewer は `Strengths`、`Blocking findings`、`Cannot verify / Declined to judge`、`Verdict: PASS / BLOCKED` を返す。好みの refactor、Issue 外の改善、style 差だけを blocking にしない。
-5. 指摘は `superpowers:receiving-code-review` に従って技術的に検証する。正しい blocking は修正し、verify、Review Package 更新、別の fresh context の独立 review を行う。判断に必要な `cannot verify` は黙って捨てず、正本・repo・GitHub の根拠を補って再判定を依頼する。
-6. 初回 review 後の **修正・verify・再 review は最大3回**。3回で PASS しない、必要な情報を補えない、または独立 review を実施できない場合は PR を作らず停止する。finding、検証結果、必要な判断をユーザーへ返す。実装者が PASS を代行しない。
-7. launcher が requested / effective の一致を確認した有効な review に限り PASS を採用する。PASS は reviewer が返し、blocking finding が0件、かつ PR 前の判断に必要な `cannot verify` が解消済みの場合だけとする。当該 PR 作成後の CI は次の段階で確認する。review 後に差分を変更した場合は verify・独立 review を再実施する。
+5. 指摘は `superpowers:receiving-code-review` に従って技術的に検証する。正しい blocking は修正し、verify、Review Package 更新後、原則として同じ reviewer / context で再 review し、前回 finding の解消と回帰の有無を確認する。独立性は初回で担保し、再 review では継続性を優先する。大幅な設計変更、scope 変更、判断の不一致、または同じ reviewer / context を継続できない場合のみ、理由を記録して新しい fresh context でやり直す。判断に必要な `cannot verify` は黙って捨てず、正本・repo・GitHub の根拠を補って同じ reviewer / context に再判定を依頼する（上記の例外時は fresh context）。
+6. 初回 review 後の **修正・verify・再 review は最大3回**。reviewer / context の変更で回数をリセットしない。3回で PASS しない、必要な情報を補えない、または独立 review を実施できない場合は PR を作らず停止する。finding、検証結果、必要な判断をユーザーへ返す。実装者が PASS を代行しない。
+7. launcher が requested / effective の一致を確認した有効な review に限り PASS を採用する。PASS は reviewer が返し、blocking finding が0件、かつ PR 前の判断に必要な `cannot verify` が解消済みの場合だけとする。当該 PR 作成後の CI は次の段階で確認する。review 後に差分を変更した場合は verify・独立 review を再実施し、再 review の context 選択は第5項に従う。
 
 ## 5. PR・CI
 
-local verify と独立 review PASS の後、セッションで PR 作成が許可されていれば PR を作る。許可が未確定なら、レビュー済み差分と次の本文を用意してから確認する。
+ユーザーから対象 GitHub Issue の実装を依頼された場合、その範囲に必要な commit / push / PR 作成・更新 / CI 確認までを依頼に含むものとして扱う。local verify と有効な独立 review が PASS したら、追加の人間確認なしで push・PR 作成または既存 PR 更新・CI 確認まで進める。review 対象を固定するための local commit は第4節の手順に従う。ユーザーが明示した停止指示や操作制限がある場合は、その指示を優先する。
 
 PR 本文には次を残す。
 
@@ -56,14 +56,6 @@ PR 本文には次を残す。
 - 独立 reviewer の判定、blocking 件数、再 review 回数。
 - 残る制約、軽微な指摘、`cannot verify / declined to judge` とその影響。
 
-PR 後は GitHub 上の当該 head の CI / status checks を確認する。CI 失敗で修正する場合も verify・独立 review をやり直し、PR の検証記録を更新する。CI が未整備・未実行・pending の状態を成功と扱わず、以下の bootstrap 例外を除き **CI 成功前に merge しない**。merge はセッションの許可範囲に従う。Branch Protection 等の人間設定はコード実装と分けて扱う。
+PR 後は GitHub 上の当該 head の CI / status checks を確認する。CI 失敗で修正する場合も `npm run verify`・独立 review をやり直し、PR の検証記録を更新する。CI が未整備・未実行・pending・失敗の状態を成功と扱わず、すべての PR で **CI 成功前に merge しない**。
 
-### Bootstrap 期間の merge
-
-親 Issue #1 の順序 `#2 → #3 → #4` を進めるため、次の条件をすべて満たす場合だけ CI 成功を merge 条件から除外する。
-
-- 対象が Issue #2 または #3 の初期整備 PR であり、repo に CI がまだ導入されていない。
-- GitHub 上の当該 head に CI / status checks が存在しないことを確認し、PR 本文に CI 未整備・未実行であることと、この例外を適用する旨を明記する。
-- 当該差分の local verify と fresh context の独立 review が PASS し、blocking finding と判断に必要な `cannot verify` が残っていない。
-
-CI が存在するのに未実行・pending・失敗している場合や、#2・#3 以外の PR には適用しない。Issue #4 自身は、追加した CI を当該 PR の最新 head 上で成功させてから merge する。#4 で CI を導入した後はこの例外を廃止し、AGENTS.md・この Skill・README の例外記述を削除する。以後はすべての PR で CI 成功を必須にする。この例外は merge の実行許可を与えない。
+**merge はユーザーから明示的に指示された場合のみ実行する。** Issue の実装依頼や CI 成功だけでは merge の指示と扱わない。明示指示がない場合は PR と CI の結果を報告して終了し、merge の確認待ちを必須工程にしない。Branch Protection 等の人間設定は [README](../../../README.md#github-ciと人間による設定) の手順に従い、コード実装と分けて扱う。
