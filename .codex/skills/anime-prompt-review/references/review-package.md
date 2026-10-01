@@ -44,4 +44,4 @@ Package の不足は `Cannot verify` として報告する。起動者が不足�
 
 launcher が reviewer 本体の header / Orca receipt 等から effective model ID / reasoning effort / read-only を確認し、requested configuration と照合する。確認方法・実効値・一致判定と reviewer の session / context ID を各回の最終 review 結果と一緒に記録する。再開時も毎回照合し、前回と同じ context であることを確認する。この記録は起動前の入力 Package とは別の成果物とし、入力を完成させるための reviewer 起動を要求しない。
 
-不一致または実効値を確認できない場合、その review は verdict が PASS でも無効。launcher は設定・起動経路を確定し、別の fresh context で再実行する。照合が済むまで verdict を PR 作成・更新の根拠にしない。
+不一致または実効値を確認できない場合、その review は verdict が PASS でも無効。launcher は設定・起動経路を確定して再実行する。初回は fresh context、再 review は設定の修復後に同じ reviewer / context を継続できる場合は継続し、review Skill の例外時だけ理由を記録して fresh context へ切り替える。照合が済むまで verdict を PR 作成・更新の根拠にしない。

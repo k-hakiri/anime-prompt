@@ -13,7 +13,7 @@
 1. 起動前の Review Package に requested configuration（model ID / effort / read-only 方針）と予定する起動経路を記す。実効値を先に要求しない。
 2. その Package と Superpowers template で、初回は実装者とは別の fresh context の reviewer を起動する。再 review は原則として同じ reviewer / context を再開する。大幅な設計変更・scope 変更・判断の不一致・継続不能の場合のみ、理由を記録して fresh context でやり直す。
 3. launcher が各回の起動後の header / receipt から reviewer 本体の effective configuration と session / context ID を取得し、requested と照合する。再開時は前回の reviewer ID と一致することも確認する。
-4. 一致した場合のみ、その review の最終 verdict を採用し、effective 値・確認方法・一致判定を結果と一緒に記録する。不一致・未確認なら review は無効として、設定または経路を確定して別の fresh context で再実行する。先行 probe の設定や仲介 agent の設定では今回の reviewer 本体の確認を代用しない。
+4. 一致した場合のみ、その review の最終 verdict を採用し、effective 値・確認方法・一致判定を結果と一緒に記録する。不一致・未確認なら review は無効として、設定または経路を確定して再実行する。初回は fresh context、再 review は同じ reviewer / context を原則とし、第2項の例外時だけ理由を記録して fresh context へ切り替える。設定の修復後に同じ reviewer / context を継続できる場合は継続する。先行 probe の設定や仲介 agent の設定では今回の reviewer 本体の確認を代用しない。
 
 ## Orca から新規 reviewer を直接起動する場合
 
