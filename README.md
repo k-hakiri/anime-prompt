@@ -92,6 +92,19 @@ anime-recommend --season SUMMER --year 2026 --input-profile full
 
 `--prompt` がなければ stdin TTY で1行の入力を受け付け、案内は stderr に出します。パイプ入力はエラーになります。`--prompt` の文字列は空白を含めてそのまま保持します。
 
+### Jev の診断 (#18)
+
+```sh
+ANIME_PROMPT_DEBUG=1 anime-recommend --season SUMMER --year 2026 \
+  --input-profile full --prompt "気楽に見たい" --format jsonl
+```
+
+`ANIME_PROMPT_DEBUG=1` のときだけ `Jev debug ` に続く JSON を stderr に出します。未設定・`0`・その他の値では既存出力を維持します。送信前の `request` は input_profile、候補数、serialized request body / state / questions / criteria の UTF-8 bytes、tags 総数、最大候補 criteria bytes を記録します。criteria bytes は質問ごとの criteria の合計、候補数・tags 総数・最大候補 bytes は Choice の集計です。profile を持たない adapter 呼び出しは input_profile が null になります。
+
+`response` は HTTP status、content-type、content-length、既知の安全な error_code を記録します。content-type は固定 MIME のみを出し、未知値は `other`、content-length は安全な非負整数のみを出します。JSON のエラー応答は最大8 KiB・1秒まで読み、現時点では `detail.error_type` が完全一致する `max_tokens_exceeded` だけを許可します。未知の code、自由文 message、本文は出しません。通信失敗は `request_failed` を記録します。API key・Authorization・prompt・作品本文・tag 文字列・request/response 全文は診断に含めません。HTTP エラーは引き続き `Jev HTTP STATUS` と終了コード1で返します。
+
+full の情報量によっては Jev の token 上限に達します。bytes は比較用の集計であり token 数や固定の byte 上限ではありません。[公式モデル資料](https://docs.typesafe.ai/models) は、取得時点（2026-10-01）の制約として request 全体64k tokens、state と最長の質問の合計32k tokens を示しています。診断は入力項目・候補集合・tags を変更しません。
+
 主経路は自然文を state の mood、候補作品を anime_id キーの Choice criteria として Jev へ1回渡します。[Choice API](https://docs.typesafe.ai/api) の全候補の確率分布を降順に並べ、同点は anime_id 昇順、上位5件（候補が5件未満なら全件）を返します。human 表示は順位・タイトル・選択確率を中心とし、長文理由は生成しません。
 
 候補は指定シーズン・年に一致し、`isAdult: false` と確認できる作品です。成人向け作品と成人向け状態が不明な作品は除外します。**旧 raw キャッシュは isAdult を持たないため、取得 CLI で再取得してください。** 人気・スコア・format・durationによる足切りはしません。候補0件・重複ID・Choice上限255件超過は API 呼び出し前に失敗し、候補を黙って切り捨てません。特徴量の事前生成は不要となり、旧 `--features` / `--schema` オプションは主推薦 CLI から削除しました。旧6軸方式の関数とテストは追加実験用に保持しています。

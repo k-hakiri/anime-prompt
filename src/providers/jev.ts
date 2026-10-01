@@ -1,4 +1,10 @@
 import { object, text, integer } from '../anime/schema.ts';
+import type { InputProfile } from '../anime/profile.ts';
+import {
+  requestDiagnostics,
+  responseDiagnostics,
+  writeJevDebug,
+} from './jev_debug.ts';
 
 export interface ScoreQuestion {
   type: 'score';
@@ -25,23 +31,29 @@ export function createJevEvaluator(
   apiKey: string | undefined = process.env.TYPESAFE_API_KEY,
   model: string = JEV_MODEL,
   request: typeof fetch = fetch,
+  options: { inputProfile?: InputProfile } = {},
 ): JevEvaluator {
   return async (state, questions) => {
     if (!apiKey?.trim()) throw new Error('TYPESAFE_API_KEY is required');
+    const debug = process.env.ANIME_PROMPT_DEBUG === '1';
     let response: Response;
     try {
+      const body = JSON.stringify({ model, state, questions });
+      if (debug) writeJevDebug(requestDiagnostics(body, options.inputProfile));
       response = await request(JEV_ENDPOINT, {
         method: 'POST',
         headers: {
           authorization: `Bearer ${apiKey}`,
           'content-type': 'application/json',
         },
-        body: JSON.stringify({ model, state, questions }),
+        body,
         signal: AbortSignal.timeout(60_000),
       });
     } catch {
+      if (debug) writeJevDebug({ event: 'request_failed' });
       throw new Error('Jev request failed');
     }
+    if (debug) writeJevDebug(await responseDiagnostics(response));
     if (!response.ok) throw new Error(`Jev HTTP ${response.status}`);
     try {
       const payload = object(await response.json());

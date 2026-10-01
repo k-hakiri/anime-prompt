@@ -1,5 +1,16 @@
 globalThis.fetch = async (_url, init) => {
   const body = JSON.parse(String(init?.body));
+  if (process.env.ANIME_TEST_FAILURE === 'debug-http')
+    return Response.json(
+      {
+        detail: { error_type: 'max_tokens_exceeded' },
+        message: 'synthetic-test-key',
+        reflected: body,
+      },
+      { status: 400, headers: { 'content-length': '47' } },
+    );
+  if (process.env.ANIME_TEST_FAILURE === 'network')
+    throw new Error('synthetic-test-key');
   if (process.env.ANIME_TEST_FAILURE === 'http')
     return new Response('synthetic-test-key', { status: 429 });
   return Response.json({
