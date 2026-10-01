@@ -16,7 +16,12 @@ globalThis.fetch = async (_url, init) => {
                   id,
                   process.env.ANIME_TEST_FAILURE === 'choice'
                     ? 999
-                    : 1 / Object.keys(body.questions[axis].criteria).length,
+                    : process.env.ANIME_TEST_FAILURE === 'sum'
+                      ? 0.98 / Object.keys(body.questions[axis].criteria).length
+                      : (process.env.ANIME_TEST_FAILURE === 'rounding'
+                          ? 0.99
+                          : 1) /
+                        Object.keys(body.questions[axis].criteria).length,
                 ]),
               ),
               confidence: 0.9,

@@ -98,6 +98,12 @@ anime-recommend --season SUMMER --year 2026 --input-profile full
 
 JSONL は1実行1行、`result_schema_version: v2` / `strategy: jev-choice-v1` です。input_prompt / input_profile（basic または full）/ provider / resolved model / recommendations（rank・anime_id・title・probability）/ 全候補の probabilities / confidence / usage / latency_ms / timestamp を記録します。metadata は candidate_ids、raw ファイル内容の SHA256、state と questions の入力 SHA256、requested model、prompt_version、シーズン・年・候補条件・top_k を保持します。v1 の6軸結果と区別して集計してください。価格設定は後続 Issue のため runtime_cost_usd は null、人間向けには「未計算」と表示します。API 障害、不正な確率分布、不正入力、データ欠損は stderr と終了コード1で返し、結果を出しません。
 
+Choice 確率の合計検証は `bounded-cent-grid-v1` です。[公式 API](https://docs.typesafe.ai/api) は合計1を要求しますが、丸め精度や許容幅は公表していません。Issue #16 の実 API 調査（2026-10-01、jev-1.13.0、SUMMER 2026、basic、106候補、同一英語入力5回）では、百分率刻みの値に浮動小数点の微小誤差が付いた分布で、合計1と約0.99の一時的な応答差を観測しました。量子化・丸めの内部原因は断定しません。
+
+各確率は有限な0〜1、候補 ID 集合は完全一致、choice は最大確率の候補であることを引き続き要求します。合計の許容幅は従来の0.001を維持し、全確率が0.01刻みの場合だけ観測した1ポイントのずれに限って0.01とします。刻み判定には `abs(p * 100 - round(p * 100)) <= 1e-12`、合計比較には許容幅に `1e-12` を加えて浮動小数点誤差を扱います。合計0や許容範囲外は拒否し、エラーには `sum=実値` だけを追加します。百分率刻みだけで任意のずれを受け入れたり、自動 retry したりはしません。
+
+JSONL の既存 `probabilities` は API の元の全確率を保持します。追加する `normalized_probabilities` は各値を元の合計で割った全確率で、recommendations の probability と human 表示はこの補正後の値を使います。confidence は API の値を保持します。metadata に `probability_sum`（元の合計）、`probability_sum_tolerance`（適用した許容幅）、`probability_policy` を追加します。v2 への追加フィールドとして扱い、元の分布を分析する処理は引き続き probabilities を使ってください。観測応答は `data/results/` など Git 管理外に保存し、公開テストには数値形状を再現する合成 fixture だけを使います。
+
 テストは API を呼ばず、unit と子プロセス smoke で確認します。実 stdin TTY を作る smoke test のため Python 3 も使用します（GitHub の Ubuntu runner に同梱）。
 
 途中で失敗した生成を再実行するときは、`>` で出力ファイルを作り直し、`>>` で追記しないでください。自動 retry / resume は行いません。
