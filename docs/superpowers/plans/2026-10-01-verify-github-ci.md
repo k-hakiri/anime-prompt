@@ -20,7 +20,8 @@
 - テストに Secret、実取得データ、外部 API 接続は必要ない。
 - PR 前に local verify と fresh context の独立 read-only review を必須とする。
 - reviewer は repo 契約の `gpt-6.1-sol` / `medium` / read-only を使う。
-- CI 成功前に merge しない。PR 作成・merge はセッションの許可範囲に従う。
+- Issue の範囲の commit / push / PR 作成・更新 / CI 確認は追加確認なしで進める。公開前の local verify・有効な独立 review PASS と、ユーザーの明示した操作制限を守る。
+- merge はユーザーから明示的に指示された場合のみ実行する。最新 head の CI 成功も必須とする。
 
 ## Review Focus
 
@@ -78,7 +79,7 @@
 - [x] **Step 5: clean install と最終 verify を実行する。** `npm ci`、`npm run verify`、`git diff --check`。Expected: 全コマンド終了コード0。全差分・追加ファイル・追跡対象・ignore と文書リンクを確認する。
 - [x] **Step 6: 検証済みの Task 2 と計画の完了状態を commit する。** 失敗注入の一時ファイルが残らないことを確認する。
 - [ ] **Step 7: 独立レビューを実施する。** Issue・正本の必要範囲・全差分・固定 revision・検証結果を repo 外の Review Package にまとめる。repo review Skill と Superpowers reviewer template を使い、fresh context の read-only reviewer を起動し、本体 header の model/effort/sandbox を照合する。blocking があれば repo dev Skill の最大3回の修正・verify・再レビューに従う。
-- [ ] **Step 8: レビュー済み差分を引き渡す。** PR 本文を repo 外に用意する。PR 作成の許可が未確定ならレビュー済み結果と本文を提示して確認する。許可済みなら push・PR 作成後に当該 head の CI を確認する。merge は自動実行しない。
+- [ ] **Step 8: レビュー済み差分を引き渡す。** PR 本文を repo 外に用意する。ユーザーの明示した操作制限がなければ、追加確認なしで push・PR 作成または既存 PR 更新を行い、当該 head の CI を確認する。merge の明示指示がなければ PR と CI の結果を報告して終了する。
 
 ## Review correction
 

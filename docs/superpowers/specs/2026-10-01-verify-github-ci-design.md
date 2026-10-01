@@ -94,8 +94,10 @@ format、lint、型検査、unit test、smoke test の失敗が verify の非0�
 local verify 後に、固定 head を対象とする fresh context の独立 read-only review を行う。
 reviewer 本体の `gpt-6.1-sol` / `medium` / read-only の実効値を起動記録で確認する。
 blocking と判断に必要な cannot verify が残れば PR は作らない。
-PR 作成の許可が確定した後は当該 head の GitHub CI を確認する。
-CI 成功前に merge せず、merge は別途セッションの許可範囲に従う。
+Issue の実装依頼にはその範囲の commit / push / PR 作成・更新 / CI 確認までを含み、
+local verify と有効な独立 review の PASS 後は追加確認なしで進める。
+ユーザーの明示した操作制限は優先する。merge はユーザーから明示的に指示された場合のみ、
+最新 head の CI 成功を確認してから実行する。指示がなければ PR と CI の結果を報告して終了する。
 
 ## 参照
 

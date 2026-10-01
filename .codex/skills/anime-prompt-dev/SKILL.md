@@ -11,7 +11,7 @@ description: Use when implementing a GitHub Issue or preparing a pull request in
 Issue確認 → branch作成 → 必要な仕様を読む → 実装 → local verify
 → fresh contextの独立review
 → blockingあり: 修正 → verify → 再review（最大3回）
-→ PASS → PR作成 → GitHub CI
+→ PASS → push → PR作成・更新 → GitHub CI → 結果報告
 ```
 
 ## 1. Issue・branch・仕様
@@ -47,7 +47,7 @@ Issue確認 → branch作成 → 必要な仕様を読む → 実装 → local v
 
 ## 5. PR・CI
 
-local verify と独立 review PASS の後、セッションで PR 作成が許可されていれば PR を作る。許可が未確定なら、レビュー済み差分と次の本文を用意してから確認する。
+ユーザーから対象 GitHub Issue の実装を依頼された場合、その範囲に必要な commit / push / PR 作成・更新 / CI 確認までを依頼に含むものとして扱う。local verify と有効な独立 review が PASS したら、追加の人間確認なしで push・PR 作成または既存 PR 更新・CI 確認まで進める。review 対象を固定するための local commit は第4節の手順に従う。ユーザーが明示した停止指示や操作制限がある場合は、その指示を優先する。
 
 PR 本文には次を残す。
 
@@ -56,4 +56,6 @@ PR 本文には次を残す。
 - 独立 reviewer の判定、blocking 件数、再 review 回数。
 - 残る制約、軽微な指摘、`cannot verify / declined to judge` とその影響。
 
-PR 後は GitHub 上の当該 head の CI / status checks を確認する。CI 失敗で修正する場合も `npm run verify`・独立 review をやり直し、PR の検証記録を更新する。CI が未整備・未実行・pending・失敗の状態を成功と扱わず、すべての PR で **CI 成功前に merge しない**。merge はセッションの許可範囲に従う。Branch Protection 等の人間設定は [README](../../../README.md#github-ciと人間による設定) の手順に従い、コード実装と分けて扱う。
+PR 後は GitHub 上の当該 head の CI / status checks を確認する。CI 失敗で修正する場合も `npm run verify`・独立 review をやり直し、PR の検証記録を更新する。CI が未整備・未実行・pending・失敗の状態を成功と扱わず、すべての PR で **CI 成功前に merge しない**。
+
+**merge はユーザーから明示的に指示された場合のみ実行する。** Issue の実装依頼や CI 成功だけでは merge の指示と扱わない。明示指示がない場合は PR と CI の結果を報告して終了し、merge の確認待ちを必須工程にしない。Branch Protection 等の人間設定は [README](../../../README.md#github-ciと人間による設定) の手順に従い、コード実装と分けて扱う。
