@@ -12,6 +12,7 @@ globalThis.fetch = async () =>
                 title: { native: '架空の旅' },
                 season: 'FALL',
                 seasonYear: 2026,
+                studios: { nodes: null },
               },
             ],
           },

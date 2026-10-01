@@ -10,9 +10,11 @@ export function normalizeAnime(value: unknown): Anime {
     [titles.native, titles.romaji, titles.english].find(
       (value) => typeof value === 'string' && value.trim(),
     ) ?? `Anime ${id}`;
-  const studioNodes = media.studios == null ? [] : object(media.studios).nodes;
+  const studioNodes =
+    media.studios == null ? [] : (object(media.studios).nodes ?? []);
   if (!Array.isArray(studioNodes)) throw new Error('Invalid AniList studios');
   const studios = studioNodes
+    .filter((node) => node !== null)
     .map((node) => object(node).name)
     .filter((name) => typeof name === 'string' && name.trim());
   return parseAnime({

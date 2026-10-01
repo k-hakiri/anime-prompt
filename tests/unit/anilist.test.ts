@@ -4,6 +4,20 @@ import { normalizeAnime } from '../../src/anilist/normalize.ts';
 import { fetchSeason } from '../../src/anilist/client.ts';
 import { parseAnime } from '../../src/anime/schema.ts';
 
+test('normalization accepts nullable studio nodes and skips null elements', () => {
+  for (const studios of [{}, { nodes: null }, { nodes: [null] }]) {
+    assert.equal(normalizeAnime({ id: 1, studios }).studio, null);
+  }
+  assert.equal(
+    normalizeAnime({
+      id: 1,
+      studios: { nodes: [null, { name: 'Synthetic Studio' }] },
+    }).studio,
+    'Synthetic Studio',
+  );
+  assert.throws(() => normalizeAnime({ id: 1, studios: { nodes: 'invalid' } }));
+});
+
 test('normalization uses stable IDs, title preference, nulls and provenance', () => {
   const anime = normalizeAnime({
     id: 1,
