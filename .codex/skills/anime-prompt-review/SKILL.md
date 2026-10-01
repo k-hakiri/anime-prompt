@@ -12,7 +12,7 @@ description: Use when independently reviewing an Anime Prompt branch or PR befor
 - 最初に [Review Package](references/review-package.md) の必須入力と対象 revision を確認する。不足を推測で埋めず `Cannot verify` に記す。
 - 実装者の会話履歴・セッションメモリ・「PASS のはず」という結論を渡さない。Package と repo / GitHub / [Notion 正本](https://app.notion.com/p/3eb4daebe6d481548d93c55b3fdf5cbe?pvs=204) を根拠にする。
 - レビューは read-only。作業ツリー・index・HEAD・branch を変更せず、修正・commit・push・PR 作成・追加 subagent 起動を行わない。
-- 起動者は [reviewer 起動契約](references/reviewer-launch.md) に従い、reviewer **本体**の model / effort と read-only を確認する。仲介 agent の設定では代用しない。
+- 起動者は [reviewer 起動契約](references/reviewer-launch.md) に従い、起動前の Package に requested configuration を添える。起動後に reviewer **本体**の effective model / effort / read-only を照合し、確認記録を review 結果へ添える。不一致・未確認の review は無効であり、PASS を採用しない。仲介 agent の設定では代用しない。
 - 必要な Superpowers Skill / template、正本や差分を読めない場合も不足として返す。アプリや schema が未実装の文書 PR では、該当しない観点を未実装の欠陥にしない。
 
 ## Anime Prompt 固有の確認点

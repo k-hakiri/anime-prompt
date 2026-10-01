@@ -8,6 +8,13 @@
 
 利用する環境でこの ID / effort が利用できなければ暗黙の default や別モデルへ切り替えず、その制約を報告して reviewer の構成を確定する。これはレビュー用設定であり、推薦 benchmark の比較設定を変更しない。
 
+## 入力・起動・結果の順序
+
+1. 起動前の Review Package に requested configuration（model ID / effort / read-only 方針）と予定する起動経路を記す。実効値を先に要求しない。
+2. その Package と Superpowers template で新規 reviewer を起動する。
+3. launcher が起動後の header / receipt から reviewer 本体の effective configuration を取得し、requested と照合する。
+4. 一致した場合のみ、その review の最終 verdict を採用し、effective 値・確認方法・一致判定を結果と一緒に記録する。不一致・未確認なら review は無効として、設定または経路を確定して別の fresh context で再実行する。先行 probe の設定や仲介 agent の設定では今回の reviewer 本体の確認を代用しない。
+
 ## Orca から新規 reviewer を直接起動する場合
 
 先に `orca skills get orchestration` と、その guide が示す `references/coordinator-loop.md` を読む。実際の executable は orchestration Skill の解決規則に従う。以下の `orca` は今回確認したローカル executable の例。
@@ -46,6 +53,6 @@ codex exec --ignore-user-config --ephemeral \
 
 path は対象 repo と今回の一時ファイルに置き換える。`--ignore-user-config` は個人 config の MCP 等を読み込まず、`--ephemeral` は session の保存を抑える。auth は CLI の既存設定を使い、Credential は prompt / Package に渡さない。repo の `AGENTS.md` は引き続き読む。Superpowers は環境から読み、prompt 内に template の実パスを明示する。
 
-起動 header の **model: gpt-6.1-sol / reasoning effort: medium / sandbox: read-only** を確認し、CLI 終了コードと最終 verdict を保存する。header は実起動設定の証拠であり、モデル内部の計算量の証明ではない。verdict file は毎回新しい path を使い、古い PASS を拾わない。終了コード0だけでは PASS にならず、review Skill の判定条件を満たす最終報告が必要。
+launcher が今回の起動 header の **model: gpt-6.1-sol / reasoning effort: medium / sandbox: read-only** を requested と照合し、effective 値・header による確認方法・一致判定を CLI 終了コードと最終 verdict と一緒に保存する。header は実起動設定の証拠であり、モデル内部の計算量の証明ではない。verdict file は毎回新しい path を使い、古い PASS を拾わない。終了コード0だけでは PASS にならず、review Skill の判定条件を満たす最終報告が必要。
 
 CLI の read-only sandbox は shell 書き込みを制限する。prompt でも修正・commit・push・PR 作成・外部 mutation・追加 subagent を禁止する。write 権限への昇格や sandbox bypass はしない。途中で起動失敗・設定不一致・不足情報があれば停止し、保証できる範囲と制約を記録する。

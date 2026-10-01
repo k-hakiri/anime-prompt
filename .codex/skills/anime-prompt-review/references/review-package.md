@@ -21,7 +21,7 @@
 - Notion 正本の必要な範囲（URL、取得時点、抜粋）。全仕様を repo に複製しない。
 - JSON / JSONL schema、feature schema、CLI 入出力、外部 API adapter の既存定義。
 - GitHub の当該 head の CI / status checks の実状態と確認時点。PR 前なら「当該 PR は未作成」を明示し、既存 workflow の有無を添える。
-- reviewer 起動の model ID / reasoning effort / read-only の実効値、確認方法、CLI / runtime version。単なる requested 値と effective 値を区別する。
+- reviewer 起動前に確定する requested configuration: model ID / reasoning effort / read-only 方針、予定する起動経路と CLI / runtime version。effective configuration は起動後の確認記録であり、入力 Package の完成条件に含めない。
 
 文書・設定だけの bootstrap PR では README / dev Skill の文書 verify を渡す。まだないアプリのテストを成功扱いしない。Issue #4 で verify / CI が導入された後は共通 verify 入口を用いる。
 
@@ -30,3 +30,9 @@
 環境にある `superpowers:requesting-code-review` の `code-reviewer.md` を直接読み、description、requirements、base / head の placeholder に Package を割り当てる。Git Range の base は **merge-base SHA** を使い、別途 base SHA も示す。repo review Skill を読む指示と repo 固有の4項目の出力契約を付加する。会話履歴や実装者の verdict は付加しない。template 自体を repo に保存しない。
 
 Package の不足は `Cannot verify` として報告する。起動者が不足を補うか、非該当とする根拠を追加し、判断に必要な不足なら新しい reviewer が再判定する。
+
+## 起動後の確認記録（review 結果に添付）
+
+launcher が reviewer 本体の header / Orca receipt 等から effective model ID / reasoning effort / read-only を確認し、requested configuration と照合する。確認方法・実効値・一致判定を最終 review 結果と一緒に記録する。この記録は起動前の入力 Package とは別の成果物とし、入力を完成させるための reviewer 起動を要求しない。
+
+不一致または実効値を確認できない場合、その review は verdict が PASS でも無効。launcher は設定・起動経路を確定し、別の fresh context で再実行する。照合が済むまで verdict を PR 作成・更新の根拠にしない。
