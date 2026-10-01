@@ -5,7 +5,8 @@
   "type": "module",
   "bin": {
     "anime-fetch-anilist": "src/cli/fetch_anilist.ts",
-    "anime-build-features": "src/cli/build_features.ts"
+    "anime-build-features": "src/cli/build_features.ts",
+    "anime-recommend": "src/cli/recommend.ts"
   },
   "packageManager": "npm@11.19.0",
   "engines": {
