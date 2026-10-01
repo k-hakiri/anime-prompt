@@ -83,6 +83,29 @@ test('recommend CLI supports explicit human/JSONL and actual stdin TTY with UI o
     assert.match(human.stdout, /100\.0%/);
     assert.match(human.stdout, /time:/);
     assert.equal(human.stderr, '');
+    const rounded = run(['--prompt', prompt, '--format', 'jsonl'], 'rounding');
+    assert.equal(rounded.status, 0, rounded.stderr);
+    const corrected = JSON.parse(rounded.stdout);
+    assert.deepEqual(corrected.probabilities, { '1': 0.99 });
+    assert.deepEqual(corrected.normalized_probabilities, { '1': 1 });
+    assert.equal(corrected.recommendations[0].probability, 1);
+    assert.equal(corrected.metadata.probability_sum, 0.99);
+    const roundedHuman = run(['--prompt', prompt], 'rounding');
+    assert.equal(roundedHuman.status, 0, roundedHuman.stderr);
+    assert.match(roundedHuman.stdout, /100\.0%/);
+    for (const format of ['human', 'jsonl']) {
+      const failed = run(['--prompt', prompt, '--format', format], 'sum');
+      assert.equal(failed.status, 1);
+      assert.equal(failed.stdout, '');
+      assert.match(
+        failed.stderr,
+        /Jev probabilities must sum to 1 \(sum=0\.98\)/,
+      );
+      assert.doesNotMatch(
+        failed.stderr,
+        /synthetic-test-key|Synthetic Journey|気楽/,
+      );
+    }
     for (const [extra, failure] of [
       [[], ''],
       [['--prompt', '   '], ''],
@@ -111,7 +134,7 @@ test('recommend CLI supports explicit human/JSONL and actual stdin TTY with UI o
       {
         encoding: 'utf8',
         timeout: 10000,
-        env,
+        env: { ...env, ANIME_TEST_FAILURE: 'rounding' },
       },
     );
     assert.ifError(tty.error);
@@ -123,6 +146,12 @@ test('recommend CLI supports explicit human/JSONL and actual stdin TTY with UI o
       JSON.parse(interactive.stdout).input_prompt,
       'Synthetic travel mood',
     );
+    assert.deepEqual(JSON.parse(interactive.stdout).probabilities, {
+      '1': 0.99,
+    });
+    assert.deepEqual(JSON.parse(interactive.stdout).normalized_probabilities, {
+      '1': 1,
+    });
     writeFileSync(rawPath, '{}\n');
     const malformed = run(['--prompt', prompt]);
     assert.equal(malformed.status, 1);
