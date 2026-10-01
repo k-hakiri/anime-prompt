@@ -67,7 +67,7 @@ node src/cli/build_features.ts --schema features/schema/v1.yaml --input-profile 
 
 basic は title / description / genres / format / episodes / duration、full はそれに tags / rank / source を追加します。studio や人気指標は渡しません。Jev の [公式 HTTP API](https://docs.typesafe.ai/api) を使う adapter を domain から分離しています。API key は環境変数だけから取得し、API の error body はログへ出しません。自動 retry はなく、失敗時は stderr と終了コード1を返します。逐次処理なので途中で失敗した場合、stdout に先行する有効な行が残ります。保存時は終了コードを確認してください。
 
-[FeatureRecord / MoodProfile](src/features/schema.ts) は作品特徴量とユーザー条件の別 schema です。作品側には anime_id / feature_schema_version / input_profile / provider / resolved・requested model / prompt_version / schema・入力の SHA256 / usage / latency_ms / generated_at を残し、作品メタデータは複製しません。MoodProfile は original_prompt をそのまま保持し、同じ6軸・schema version・hash で比較できます。推薦時の自然文変換は #9 で実装します。計測用の usage と時間は保存しますが、単価・コスト集計は後続の benchmark Issue で扱います。
+[FeatureRecord / MoodProfile](src/features/schema.ts) は作品特徴量とユーザー条件の別 schema です。作品側には anime_id / feature_schema_version / input_profile / provider / resolved・requested model / prompt_version / schema・入力の SHA256 / usage / latency_ms / generated_at を残し、作品メタデータは複製しません。MoodProfile は original_prompt をそのまま保持し、同じ6軸・schema version・hash で比較できます。推薦時の自然文変換は次の推薦 CLI で実行します。計測用の usage と時間は保存しますが、単価・コスト集計は後続の benchmark Issue で扱います。
 
 ## 気分から推薦 (#9)
 
