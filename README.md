@@ -60,6 +60,23 @@ anime-fetch-anilist --season FALL --year 2026 | sed -n '1,3p'
 
 正規化契約は [Anime schema](src/anime/schema.ts) に定義します。`anime_id` は AniList の正整数 ID、`title` は native → romaji → english → `Anime ID` の順です。`description`、`episodes`、`duration`、`format`、原作種別 `source`、`studio`、`season`、`year` の欠損は null、`genres` / `tags` は空配列です。tags は name / rank (0–100 または null) を保持します。`data_source: anilist` と `source_url` で取得元を区別します。description は API の `asHtml: false` で取得します。
 
+## Jev特徴量生成 (#8)
+
+```sh
+# TYPESAFE_API_KEY を環境変数として設定してから実行
+node src/cli/build_features.ts --schema features/schema/v1.yaml --input-profile full \
+  < data/raw/2026-fall.jsonl > data/features/2026-fall-full-v1.jsonl
+# npm link 後は anime-build-features でも同じオプションを使用できます
+```
+
+既定は full / 同梱 v1 schema / model `jev-1.13.0` です。1作品につき6問の Score を1回の request で評価し、連続値を `score / (criteria数 - 1)` で0〜1に正規化します。confidence は0〜1で別に保存します。[YAML 定義](features/schema/v1.yaml) の各軸は0側から1側へ並べた2〜10個の criteria を持ちます。高い値の意味は、healing=癒し、cognitive_load=理解負荷、seriousness=深刻さ、world_building=世界観の重要度、character_focus=キャラ中心、travel=旅・土地性です。
+
+basic は title / description / genres / format / episodes / duration、full はそれに tags / rank / source を追加します。studio や人気指標は渡しません。Jev の [公式 HTTP API](https://docs.typesafe.ai/api) を使う adapter を domain から分離しています。API key は環境変数だけから取得し、API の error body はログへ出しません。自動 retry はなく、失敗時は stderr と終了コード1を返します。逐次処理なので途中で失敗した場合、stdout に先行する有効な行が残ります。保存時は終了コードを確認してください。
+
+[FeatureRecord / MoodProfile](src/features/schema.ts) は作品特徴量とユーザー条件の別 schema です。作品側には anime_id / feature_schema_version / input_profile / provider / resolved・requested model / prompt_version / schema・入力の SHA256 / usage / latency_ms / generated_at を残し、作品メタデータは複製しません。MoodProfile は original_prompt をそのまま保持し、同じ6軸・schema version・hash で比較できます。推薦時の自然文変換は #9 で実装します。計測用の usage と時間は保存しますが、単価・コスト集計は後続の benchmark Issue で扱います。
+
+途中で失敗した生成を再実行するときは、`>` で出力ファイルを作り直し、`>>` で追記しないでください。自動 retry / resume は行いません。
+
 ## 開発
 
 [AGENTS.md](AGENTS.md) と [開発 Skill](.codex/skills/anime-prompt-dev/SKILL.md) を読み、次の流れで進めます。
