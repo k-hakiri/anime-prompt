@@ -1,0 +1,16 @@
+id: smoking-context-v1
+context_version: smoking-context-v1
+season: SUMMER
+year: 2026
+candidate_count: 106
+prompt: むしゃくしゃしている。タバコでも吸いながらコーヒーを飲みたいぜ。
+policy: >-
+  作品テーマや入力文中の単語の表面的な一致だけでなく、発言の背景にある「今どんな作品を見たいか」という視聴欲求も考慮して判断してください。
+preferences:
+  likes:
+    - 旅や土地の雰囲気
+    - 世界観を楽しめる作品
+    - 落ち着いて見られる作品
+  dislikes:
+    - テンプレ的な異世界作品
+    - キャラクターの可愛さだけを主目的にした作品

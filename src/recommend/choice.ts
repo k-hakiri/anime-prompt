@@ -6,7 +6,8 @@ import type { InputProfile } from '../anime/profile.ts';
 import type { ChoiceQuestion, JevEvaluator } from '../providers/jev.ts';
 import { JEV_MODEL } from '../providers/jev.ts';
 
-import { RECOMMENDATION_INSTRUCTIONS } from './instructions.ts';
+import { contextInstructions, userContext } from './context.ts';
+import type { RecommendationContext } from './context.ts';
 // Preserve the existing tolerance; observed cent-grid responses may miss one point.
 const SUM_TOLERANCE = 0.001;
 const CENT_GRID_SUM_TOLERANCE = 0.01;
@@ -24,6 +25,7 @@ export async function recommendChoice(
     inputProfile?: InputProfile;
     model?: string;
     rawSha256?: string;
+    context?: RecommendationContext;
   },
 ) {
   text(prompt);
@@ -31,11 +33,11 @@ export async function recommendChoice(
   const candidates = selectCandidates(anime, options);
   if (candidates.length > 255)
     throw new Error('Jev Choice supports at most 255 candidates');
-  const state = { mood: prompt };
+  const state = { mood: prompt, ...userContext(options.context) };
   const questions: Record<string, ChoiceQuestion> = {
     recommend: {
       type: 'choice',
-      instructions: RECOMMENDATION_INSTRUCTIONS,
+      instructions: contextInstructions(options.context),
       criteria: Object.fromEntries(
         candidates.map((row) => [
           String(row.anime_id),
