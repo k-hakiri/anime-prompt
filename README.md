@@ -39,7 +39,26 @@ npm run verify
 node src/cli/main.ts --help
 ```
 
-現時点ではヘルプのみを提供します。引数なしや不正な引数は stdout に結果を出さず、stderr に診断を出して終了コード2で終了します。本体の3つの CLI は後続 Issue で追加します。
+`main.ts` は scaffold のヘルプを提供します。引数なしや不正な引数は stdout に結果を出さず、stderr に診断を出して終了コード2で終了します。取得 CLI は以下で実行できます。
+
+## AniList取得 (#7)
+
+```sh
+node src/cli/fetch_anilist.ts --season FALL --year 2026 > data/raw/2026-fall.jsonl
+# コマンド名で実行する場合（Node 24.21.0 を PATH に設定）
+npm link
+anime-fetch-anilist --season FALL --year 2026 > data/raw/2026-fall.jsonl
+```
+
+手動で実 API の疎通を1回確認する場合は、次を実行します（Secret 不要）。全候補を取得し、先頭3行を表示します。CI は mock のままです。
+
+```sh
+anime-fetch-anilist --season FALL --year 2026 | sed -n '1,3p'
+```
+
+取得は [AniList GraphQL API](https://docs.anilist.co/guide/graphql/queries/media) のシーズン・年フィルタを使い、全ページ取得後に1作品1行の JSONL を出します。HTTP/GraphQL/データ不正は stderr と終了コード1で知らせます。自動 retry は行いません。AI API は呼びません。
+
+正規化契約は [Anime schema](src/anime/schema.ts) に定義します。`anime_id` は AniList の正整数 ID、`title` は native → romaji → english → `Anime ID` の順です。`description`、`episodes`、`duration`、`format`、原作種別 `source`、`studio`、`season`、`year` の欠損は null、`genres` / `tags` は空配列です。tags は name / rank (0–100 または null) を保持します。`data_source: anilist` と `source_url` で取得元を区別します。description は API の `asHtml: false` で取得します。
 
 ## 開発
 
