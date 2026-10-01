@@ -75,6 +75,8 @@ basic は title / description / genres / format / episodes / duration、full は
 
 [FeatureRecord / MoodProfile](src/features/schema.ts) は作品特徴量とユーザー条件の別 schema です。作品側には anime_id / feature_schema_version / input_profile / provider / resolved・requested model / prompt_version / schema・入力の SHA256 / usage / latency_ms / generated_at を残し、作品メタデータは複製しません。MoodProfile は original_prompt をそのまま保持し、同じ6軸・schema version・hash で比較できます。推薦時の自然文変換は #9 で実装します。計測用の usage と時間は保存しますが、単価・コスト集計は後続の benchmark Issue で扱います。
 
+途中で失敗した生成を再実行するときは、`>` で出力ファイルを作り直し、`>>` で追記しないでください。自動 retry / resume は行いません。
+
 ## 開発
 
 [AGENTS.md](AGENTS.md) と [開発 Skill](.codex/skills/anime-prompt-dev/SKILL.md) を読み、次の流れで進めます。
