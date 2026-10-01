@@ -6,7 +6,7 @@
 
 ## 現在の状態
 
-開発ルールと公開 repo の初期基盤を整備する段階です。CLI 本体は未実装で、実装言語・依存管理・verify 入口・GitHub CI は [Issue #4](https://github.com/k-hakiri/anime-prompt/issues/4) で決定します。独立 review の repo 固有 Skill は [Issue #3](https://github.com/k-hakiri/anime-prompt/issues/3) で整備します。
+開発ルールと公開 repo の初期基盤を整備する段階です。CLI 本体は未実装で、実装言語・依存管理・verify 入口・GitHub CI は [Issue #4](https://github.com/k-hakiri/anime-prompt/issues/4) で決定します。独立 review は [review Skill](.codex/skills/anime-prompt-review/SKILL.md) に従います。Review Package・判定条件と、reviewer 本体を `gpt-6.1-sol` / `medium` で起動する方法を定めています。
 
 ## 開発
 
