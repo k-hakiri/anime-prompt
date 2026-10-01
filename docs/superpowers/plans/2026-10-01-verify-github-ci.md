@@ -1,6 +1,6 @@
 # Verify and GitHub CI Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Issue #4 のローカル・PR CI 共通品質ゲートを構築する。
 
@@ -46,17 +46,17 @@
 - Produces: `node src/cli/main.ts --help`、`npm run verify`、整形用 `npm run format`。
 - Produces: `npm run test:unit` と `npm run test:smoke`。各ディレクトリの `.test.ts` をすべて実行する。
 
-- [ ] **Step 1: Node.js 24 の実在する安定版を確認し固定する。** `.node-version` の値でローカルを起動し、`node --version` と `npm --version` を記録する。既存の Issue 用 worktree を再利用する。
-- [ ] **Step 2: package と品質ゲート設定を作る。** ESM と strict TypeScript を使い、native TypeScript に不適合な構文を型検査で禁止する。format/lint/typecheck/test:unit/test:smoke を `&&` で結ぶ verify を定義する。開発依存を固定して lockfile を生成し、`node_modules/`・coverage・build・TypeScript cache を ignore する。
-- [ ] **Step 3: 引数判定の failing unit test を書く。** `['--help']` のみが `'help'`、`[]`, `['--unknown']`, `['--help', 'extra']` が `'invalid'` と assert する。
-- [ ] **Step 4: `npm run test:unit` を実行する。** Expected: `args.ts` 未実装による失敗。
-- [ ] **Step 5: `parseArgs(args: readonly string[]): 'help' | 'invalid'` を実装する。** 正確に1個の `--help` のみを受け入れる。
-- [ ] **Step 6: `npm run test:unit` を実行する。** Expected: 全 unit test が PASS。
-- [ ] **Step 7: failing smoke test を書く。** `spawnSync(process.execPath, ['src/cli/main.ts', ...args], { timeout: 5000 })` を使う。help は status 0、stdout に usage、stderr 空。空引数・未知引数・help と余分な引数は非0 status、stdout 空、stderr に診断。spawn error は失敗として assert する。
-- [ ] **Step 8: `npm run test:smoke` を実行する。** Expected: `main.ts` 未実装で help の成功条件が失敗。
-- [ ] **Step 9: CLI 入口を実装する。** help を stdout、invalid の診断を stderr に出し、invalid の `process.exitCode` を 2 にする。ヘルプに本体未実装であることと後続 Issue の境界を示す。
-- [ ] **Step 10: 整形後に `npm run verify` を実行する。** Expected: format/lint/typecheck/unit/smoke の全工程が終了コード0。
-- [ ] **Step 11: 検証済みの Task 1 を commit する。** `git diff --check` を確認してから、指定ファイルのみ stage する。
+- [x] **Step 1: Node.js 24 の実在する安定版を確認し固定する。** `.node-version` の値でローカルを起動し、`node --version` と `npm --version` を記録する。既存の Issue 用 worktree を再利用する。
+- [x] **Step 2: package と品質ゲート設定を作る。** ESM と strict TypeScript を使い、native TypeScript に不適合な構文を型検査で禁止する。format/lint/typecheck/test:unit/test:smoke を `&&` で結ぶ verify を定義する。開発依存を固定して lockfile を生成し、`node_modules/`・coverage・build・TypeScript cache を ignore する。
+- [x] **Step 3: 引数判定の failing unit test を書く。** `['--help']` のみが `'help'`、`[]`, `['--unknown']`, `['--help', 'extra']` が `'invalid'` と assert する。
+- [x] **Step 4: `npm run test:unit` を実行する。** Expected: `args.ts` 未実装による失敗。
+- [x] **Step 5: `parseArgs(args: readonly string[]): 'help' | 'invalid'` を実装する。** 正確に1個の `--help` のみを受け入れる。
+- [x] **Step 6: `npm run test:unit` を実行する。** Expected: 全 unit test が PASS。
+- [x] **Step 7: failing smoke test を書く。** `spawnSync(process.execPath, ['src/cli/main.ts', ...args], { timeout: 5000 })` を使う。help は status 0、stdout に usage、stderr 空。空引数・未知引数・help と余分な引数は非0 status、stdout 空、stderr に診断。spawn error は失敗として assert する。
+- [x] **Step 8: `npm run test:smoke` を実行する。** Expected: `main.ts` 未実装で help の成功条件が失敗。
+- [x] **Step 9: CLI 入口を実装する。** help を stdout、invalid の診断を stderr に出し、invalid の `process.exitCode` を 2 にする。ヘルプに本体未実装であることと後続 Issue の境界を示す。
+- [x] **Step 10: 整形後に `npm run verify` を実行する。** Expected: format/lint/typecheck/unit/smoke の全工程が終了コード0。
+- [x] **Step 11: 検証済みの Task 1 を commit する。** `git diff --check` を確認してから、指定ファイルのみ stage する。
 
 ## Task 2: PR CI と運用文書
 

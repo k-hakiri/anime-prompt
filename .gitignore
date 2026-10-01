@@ -14,4 +14,12 @@ data/private/
 .worktrees/
 .DS_Store
 
-# Add language-specific build/cache/coverage patterns in Issue #4.
+# Node.js dependencies, generated output, and caches.
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Local editor recovery files.
+*.swp
+*.swo

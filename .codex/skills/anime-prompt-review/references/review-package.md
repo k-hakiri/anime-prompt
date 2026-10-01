@@ -4,14 +4,14 @@
 
 ## 必須入力
 
-| 入力 | 内容 |
-| --- | --- |
-| 対象と概要 | repo、branch / PR URL、変更の目的と範囲 |
-| revision | base ref、base SHA、merge-base SHA、head SHA。可変 ref だけで済ませない |
-| 全 diff | `git diff --binary <merge-base SHA> <head SHA>`。変更ファイル一覧だけでは不可 |
-| 要件 | GitHub Issue URL、取得時点の本文全文と Acceptance Criteria |
-| repo ルール | 対象 revision の `AGENTS.md` 全文 |
-| local verify | 対象 revision、実行コマンド、終了コード、結果、未実行項目と理由 |
+| 入力         | 内容                                                                          |
+| ------------ | ----------------------------------------------------------------------------- |
+| 対象と概要   | repo、branch / PR URL、変更の目的と範囲                                       |
+| revision     | base ref、base SHA、merge-base SHA、head SHA。可変 ref だけで済ませない       |
+| 全 diff      | `git diff --binary <merge-base SHA> <head SHA>`。変更ファイル一覧だけでは不可 |
+| 要件         | GitHub Issue URL、取得時点の本文全文と Acceptance Criteria                    |
+| repo ルール  | 対象 revision の `AGENTS.md` 全文                                             |
+| local verify | 対象 revision、実行コマンド、終了コード、結果、未実行項目と理由               |
 
 原則として commit 済みの head を固定して review する。未コミット変更を扱う場合は基準 HEAD、staged / unstaged diff、未追跡ファイルの全内容と一覧を添え、対象を一意に固定する。review 中に変更せず、commit 後に内容が一致することを確認する。一致しない場合は再 verify・再 review。
 
